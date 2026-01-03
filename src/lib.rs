@@ -86,7 +86,7 @@ mod theme_config;
 pub mod dialog;
 
 // Font loading module (optional feature)
-#[cfg(feature = "font-loading")]
+#[cfg(feature = "font")]
 pub mod font;
 
 // Promise module for async operations (optional feature)
