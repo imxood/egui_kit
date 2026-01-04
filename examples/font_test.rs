@@ -22,7 +22,7 @@ fn main() -> Result<(), eframe::Error> {
             setup_theme(&cc.egui_ctx, ThemePreset::Dark);
 
             // Initialize font manager
-            let font_manager = match egui_kit::font::FontManager::new(&cc.egui_ctx) {
+            let font_manager = match egui_kit::utils::font::FontManager::new(&cc.egui_ctx) {
                 Ok(manager) => {
                     println!("✅ Font loaded: {}", manager.current_font());
                     println!("   Language: {}", manager.current_language());
@@ -40,7 +40,7 @@ fn main() -> Result<(), eframe::Error> {
 }
 
 struct FontTestApp {
-    font_manager: Option<egui_kit::font::FontManager>,
+    font_manager: Option<egui_kit::utils::font::FontManager>,
 }
 
 impl eframe::App for FontTestApp {
@@ -86,10 +86,10 @@ impl eframe::App for FontTestApp {
                     ui.heading("语言切换 Language Switch");
 
                     let languages = [
-                        egui_kit::font::Language::Chinese,
-                        egui_kit::font::Language::English,
-                        egui_kit::font::Language::Japanese,
-                        egui_kit::font::Language::Korean,
+                        egui_kit::utils::font::Language::Chinese,
+                        egui_kit::utils::font::Language::English,
+                        egui_kit::utils::font::Language::Japanese,
+                        egui_kit::utils::font::Language::Korean,
                     ];
 
                     for lang in languages {

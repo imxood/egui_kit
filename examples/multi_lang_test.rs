@@ -22,7 +22,7 @@ fn main() -> Result<(), eframe::Error> {
             setup_theme(&cc.egui_ctx, ThemePreset::Dark);
 
             // Initialize font manager
-            let font_manager = match egui_kit::font::FontManager::new(&cc.egui_ctx) {
+            let font_manager = match egui_kit::utils::font::FontManager::new(&cc.egui_ctx) {
                 Ok(manager) => {
                     println!("✅ Font loaded: {}", manager.current_font());
                     Some(manager)
@@ -35,7 +35,7 @@ fn main() -> Result<(), eframe::Error> {
 
             Ok(Box::new(MultiLanguageTestApp {
                 font_manager,
-                selected_languages: vec![egui_kit::font::Language::Chinese],
+                selected_languages: vec![egui_kit::utils::font::Language::Chinese],
                 is_multi_language_mode: false,
                 custom_text: "Hello 世界! こんにちは 안녕하세요".to_string(),
             }))
@@ -44,8 +44,8 @@ fn main() -> Result<(), eframe::Error> {
 }
 
 struct MultiLanguageTestApp {
-    font_manager: Option<egui_kit::font::FontManager>,
-    selected_languages: Vec<egui_kit::font::Language>,
+    font_manager: Option<egui_kit::utils::font::FontManager>,
+    selected_languages: Vec<egui_kit::utils::font::Language>,
     is_multi_language_mode: bool,
     custom_text: String,
 }
@@ -86,10 +86,10 @@ impl MultiLanguageTestApp {
                 ui.separator();
 
                 let all_languages = [
-                    egui_kit::font::Language::Chinese,
-                    egui_kit::font::Language::English,
-                    egui_kit::font::Language::Japanese,
-                    egui_kit::font::Language::Korean,
+                    egui_kit::utils::font::Language::Chinese,
+                    egui_kit::utils::font::Language::English,
+                    egui_kit::utils::font::Language::Japanese,
+                    egui_kit::utils::font::Language::Korean,
                 ];
 
                 let mut languages_changed = false;
@@ -119,7 +119,7 @@ impl MultiLanguageTestApp {
                     if ui.button("清空 Clear").clicked() {
                         self.selected_languages.clear();
                         // Keep at least one language
-                        self.selected_languages.push(egui_kit::font::Language::English);
+                        self.selected_languages.push(egui_kit::utils::font::Language::English);
                         self.apply_fonts(ctx);
                     }
                 });
@@ -143,7 +143,7 @@ impl MultiLanguageTestApp {
 
     /// Show current font status
     /// 显示当前字体状态
-    fn show_font_status(&self, ui: &mut egui::Ui, manager: &egui_kit::font::FontManager) {
+    fn show_font_status(&self, ui: &mut egui::Ui, manager: &egui_kit::utils::font::FontManager) {
         ui.group(|ui| {
             ui.heading("📊 当前状态 Current Status");
             ui.separator();

@@ -10,10 +10,10 @@
 //! cargo run -p egui_kit --example showcase
 
 use eframe::egui;
-use egui_kit::{ThemeConfig, ThemePreset, h1, h2, h3, h4, h5, h6, h7, setup_theme};
+use egui_kit::foundation::{ThemeConfig, ThemePreset, h1, h2, h3, h4, h5, h6, h7, setup_theme};
 
 #[cfg(feature = "font")]
-use egui_kit::font::{FontManager, Language};
+use egui_kit::utils::font::{FontManager, Language};
 
 fn main() -> Result<(), eframe::Error> {
     env_logger::init();
@@ -576,7 +576,7 @@ impl ComprehensiveShowcaseApp {
     }
 
     #[cfg(feature = "font")]
-    fn show_font_status(&self, ui: &mut egui::Ui, manager: &egui_kit::font::FontManager) {
+    fn show_font_status(&self, ui: &mut egui::Ui, manager: &egui_kit::utils::font::FontManager) {
         ui.group(|ui| {
             ui.heading("📊 Status");
             ui.separator();
