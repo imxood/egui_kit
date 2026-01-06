@@ -275,13 +275,13 @@
       "color": "{Gray.800}"
     },
     "list_item_active_icon": {
-      "color": "{Gray.800}"
+      "color": "{Gray.1000}"
     },
     "list_item_hovered_icon": {
-      "color": "{Gray.600}"
+      "color": "{Gray.1000}"
     },
     "list_item_default_icon": {
-      "color": "{Gray.500}"
+      "color": "{Gray.1000}"
     },
     "list_item_hovered_bg": {
       "color": "{Gray.250}"
@@ -290,7 +290,7 @@
       "color": "{Gray.200}"
     },
     "list_item_collapse_default": {
-      "color": "{Gray.700}"
+      "color": "{Gray.1000}"
     },
 
     //array indices

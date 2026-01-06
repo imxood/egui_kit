@@ -1249,9 +1249,7 @@ pub trait UiExt {
     /// Show some markdown
     #[cfg(feature = "markdown")]
     fn markdown_ui(&mut self, markdown: &str) {
-        use std::sync::Arc;
-
-        use parking_lot::Mutex;
+        use std::sync::{Arc, Mutex};
 
         let ui = self.ui_mut();
         let commonmark_cache = ui.data_mut(|data| {
@@ -1263,7 +1261,7 @@ pub trait UiExt {
 
         egui_commonmark::CommonMarkViewer::new().show(
             ui as &mut egui::Ui,
-            &mut commonmark_cache.lock(),
+            &mut commonmark_cache.lock().unwrap(),
             markdown,
         );
     }

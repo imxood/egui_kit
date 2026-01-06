@@ -6,11 +6,34 @@ use super::theme::ThemeConfig;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum ThemePreset {
+    // ===== 暗色主题 =====
+
     /// Modern dark theme (default) - inspired by GitHub Dark & VS Code
     Dark,
 
-    /// Modern light theme
-    Light,
+    /// Dark blue theme - 深邃的蓝黑色调，适合长时间编码
+    DarkBlue,
+
+    /// Dark purple theme - 优雅的紫黑色调，神秘而专业
+    DarkPurple,
+
+    /// Deep ocean theme - 深海般的蓝黑渐变，沉稳大气
+    DeepOcean,
+
+    /// Midnight blue theme - 午夜蓝黑，柔和而不刺眼
+    MidnightBlue,
+
+    /// High contrast dark - 高对比度暗色，文字极度清晰
+    DarkContrast,
+
+    /// One Dark theme - VS Code经典暗色主题
+    OneDark,
+
+    /// Gruvbox Dark - 复古暖色暗色主题
+    GruvboxDark,
+
+    /// Tokyo Night theme - 东京夜景，流行的开发者主题
+    TokyoNight,
 
     /// Nord theme - minimal and elegant
     Nord,
@@ -20,33 +43,110 @@ pub enum ThemePreset {
 
     /// ImAuto theme - professional dark theme with warm accents
     ImAuto,
+
+    // ===== 亮色主题 =====
+
+    /// Modern light theme
+    Light,
+
+    /// Light blue theme - 清爽的蓝白色调
+    LightBlue,
+
+    /// Solarized Light - 经典护眼亮色主题
+    SolarizedLight,
+
+    /// High contrast light - 高对比度亮色
+    LightContrast,
+
+    /// Catppuccin Latte - 柔和的拿铁色调
+    Catppuccin,
+
+    /// Gruvbox Light - 复古暖色亮色主题
+    GruvboxLight,
+
+    /// GitHub Light - GitHub经典亮色
+    GitHubLight,
 }
 
 impl ThemePreset {
     /// Get all available presets
     pub const fn all() -> &'static [ThemePreset] {
-        &[Self::Dark, Self::Light, Self::Nord, Self::Dracula, Self::ImAuto]
+        &[
+            // 暗色主题
+            Self::Dark,
+            Self::DarkBlue,
+            Self::DarkPurple,
+            Self::DeepOcean,
+            Self::MidnightBlue,
+            Self::DarkContrast,
+            Self::OneDark,
+            Self::GruvboxDark,
+            Self::TokyoNight,
+            Self::Nord,
+            Self::Dracula,
+            Self::ImAuto,
+            // 亮色主题
+            Self::Light,
+            Self::LightBlue,
+            Self::SolarizedLight,
+            Self::LightContrast,
+            Self::Catppuccin,
+            Self::GruvboxLight,
+            Self::GitHubLight,
+        ]
     }
 
     /// Get preset name for UI display
     pub const fn name(&self) -> &'static str {
         match self {
+            // 暗色主题
             Self::Dark => "Modern Dark",
-            Self::Light => "Modern Light",
+            Self::DarkBlue => "Dark Blue",
+            Self::DarkPurple => "Dark Purple",
+            Self::DeepOcean => "Deep Ocean",
+            Self::MidnightBlue => "Midnight Blue",
+            Self::DarkContrast => "High Contrast Dark",
+            Self::OneDark => "One Dark",
+            Self::GruvboxDark => "Gruvbox Dark",
+            Self::TokyoNight => "Tokyo Night",
             Self::Nord => "Nord",
             Self::Dracula => "Dracula",
             Self::ImAuto => "ImAuto Professional",
+            // 亮色主题
+            Self::Light => "Modern Light",
+            Self::LightBlue => "Light Blue",
+            Self::SolarizedLight => "Solarized Light",
+            Self::LightContrast => "High Contrast Light",
+            Self::Catppuccin => "Catppuccin Latte",
+            Self::GruvboxLight => "Gruvbox Light",
+            Self::GitHubLight => "GitHub Light",
         }
     }
 
     /// Get preset description
     pub const fn description(&self) -> &'static str {
         match self {
-            Self::Dark => "Modern dark theme inspired by GitHub Dark and VS Code",
-            Self::Light => "Modern light theme with excellent readability",
-            Self::Nord => "Minimal and elegant arctic-inspired theme",
-            Self::Dracula => "Vibrant dark theme with punchy colors",
-            Self::ImAuto => "Professional dark theme with deep blue-gray background and warm yellow accents",
+            // 暗色主题
+            Self::Dark => "现代暗色，灵感来自GitHub Dark和VS Code，平衡的蓝灰色调",
+            Self::DarkBlue => "深邃蓝黑，适合长时间编码，舒适的蓝色主调减少眼疲劳",
+            Self::DarkPurple => "优雅紫黑，神秘而专业，紫色点缀提升视觉层次",
+            Self::DeepOcean => "深海蓝黑，沉稳大气，蓝色渐变营造深度感",
+            Self::MidnightBlue => "午夜蓝黑，柔和不刺眼，暗蓝色背景更护眼",
+            Self::DarkContrast => "高对比度暗色，文字极度清晰，适合弱视用户",
+            Self::OneDark => "VS Code经典暗色，柔和的紫灰色调，广受开发者喜爱",
+            Self::GruvboxDark => "复古暖色暗色，棕褐色调温暖舒适，长时间使用不疲劳",
+            Self::TokyoNight => "东京夜景，流行的开发者主题，蓝紫色调时尚现代",
+            Self::Nord => "北欧极简，冰川般的蓝灰色调，清爽优雅",
+            Self::Dracula => "德古拉紫，鲜艳的紫粉色，个性张扬充满活力",
+            Self::ImAuto => "专业深蓝，深蓝灰背景配暖黄点缀，商务专业",
+            // 亮色主题
+            Self::Light => "现代亮色，柔和的灰白色调，阅读舒适",
+            Self::LightBlue => "清爽蓝白，天空般的蓝白色调，清新明快",
+            Self::SolarizedLight => "Solarized经典护眼亮色，精心调配的暖色调",
+            Self::LightContrast => "高对比度亮色，黑白分明，文字极度清晰",
+            Self::Catppuccin => "拿铁柔和，温暖的奶油色调，柔和不刺眼",
+            Self::GruvboxLight => "复古暖色亮色，米黄色调温暖舒适",
+            Self::GitHubLight => "GitHub经典亮色，清爽的白底灰边，简洁专业",
         }
     }
 }

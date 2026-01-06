@@ -61,11 +61,11 @@ struct DialogState {
 }
 
 /// 对话框数据存储 (全局静态, 存储回调)
-static DIALOG_DATA: std::sync::OnceLock<parking_lot::Mutex<IndexMap<String, DialogData>>> =
+static DIALOG_DATA: std::sync::OnceLock<std::sync::Mutex<IndexMap<String, DialogData>>> =
     std::sync::OnceLock::new();
 
-fn dialog_data() -> &'static parking_lot::Mutex<IndexMap<String, DialogData>> {
-    DIALOG_DATA.get_or_init(|| parking_lot::Mutex::new(IndexMap::new()))
+fn dialog_data() -> &'static std::sync::Mutex<IndexMap<String, DialogData>> {
+    DIALOG_DATA.get_or_init(|| std::sync::Mutex::new(IndexMap::new()))
 }
 
 /// 对话框 API
@@ -204,7 +204,7 @@ impl Dialog {
         });
 
         // 存储回调数据
-        dialog_data().lock().insert(
+        dialog_data().lock().unwrap().insert(
             key,
             DialogData {
                 user_data: Box::new(user_data),
@@ -223,7 +223,7 @@ impl Dialog {
         Self::with_state(ctx, |state| {
             Arc::make_mut(&mut state.renders).shift_remove(key);
         });
-        dialog_data().lock().shift_remove(key);
+        dialog_data().lock().unwrap().shift_remove(key);
     }
 
     /// 关闭所有对话框
@@ -231,7 +231,7 @@ impl Dialog {
         Self::with_state(ctx, |state| {
             Arc::make_mut(&mut state.renders).clear();
         });
-        dialog_data().lock().clear();
+        dialog_data().lock().unwrap().clear();
     }
 
     /// 检查是否有对话框显示
@@ -256,7 +256,7 @@ impl Dialog {
             });
 
             // 执行回调
-            if let Some(data) = dialog_data().lock().shift_remove(&key) {
+            if let Some(data) = dialog_data().lock().unwrap().shift_remove(&key) {
                 (data.on_cancel)(data.user_data);
             }
         }
