@@ -47,19 +47,60 @@ pub mod testing;
 use egui::NumExt as _;
 
 // ===== Foundation Re-exports =====
-pub use foundation::{
-    design_tokens_of, DesignTokens, ThemeConfig, ThemePreset,
-};
+pub use foundation::{design_tokens_of, DesignTokens, ThemeName};
+pub use foundation::theme::{DARK_THEMES, LIGHT_THEMES, ALL_THEMES};
+
+// ============================================================================
+// 主题设置
+// ============================================================================
+
+use crate::foundation::theme::{self, style_by_name};
+
+/// Setup theme with ThemeName
+///
+/// # Example
+/// ```rust
+/// use egui_kit::{setup_theme, ThemeName};
+///
+/// fn main() -> Result<(), eframe::Error> {
+///     eframe::run_native(
+///         "My App",
+///         eframe::NativeOptions::default(),
+///         Box::new(|cc| {
+///             setup_theme(&cc.egui_ctx, ThemeName::ModernDark);
+///             Ok(Box::new(MyApp::new()))
+///         }),
+///     )
+/// }
+/// ```
+pub fn setup_theme(ctx: &egui::Context, name: ThemeName) {
+    let style: egui::Style = style_by_name(name);
+    ctx.set_style(std::sync::Arc::new(style));
+}
+
+/// Convert ThemePreference to ThemeName
+impl From<egui::ThemePreference> for ThemeName {
+    fn from(preference: egui::ThemePreference) -> Self {
+        match preference {
+            egui::ThemePreference::Dark => ThemeName::ModernDark,
+            egui::ThemePreference::Light => ThemeName::ModernLight,
+            egui::ThemePreference::System => ThemeName::ModernDark, // Default to dark for system
+        }
+    }
+}
 
 // ===== Components Re-exports =====
 pub use components::{
     // Basic
     Icon,
-    
+
     // Others
     list_item, SectionCollapsingHeader,
-    CommandPalette, CommandPaletteAction, CommandPaletteUrl, 
+    CommandPalette, CommandPaletteAction, CommandPaletteUrl,
     UICommand, UICommandSender,
+
+    // Dialog
+    dialog::Dialog,
 };
 
 // ===== Extensions Re-exports =====

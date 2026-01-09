@@ -8,7 +8,7 @@
 //! cargo run -p egui_kit --example dialog_demo
 
 use eframe::egui;
-use egui_kit::{dialog::Dialog, setup_theme, ThemePreset};
+use egui_kit::{Dialog, setup_theme, ThemeName};
 use std::sync::{
     atomic::{AtomicU32, Ordering},
     Arc,
@@ -28,7 +28,7 @@ fn main() -> Result<(), eframe::Error> {
         "Dialog Demo",
         native_options,
         Box::new(|cc| {
-            setup_theme(&cc.egui_ctx, ThemePreset::Dark);
+            setup_theme(&cc.egui_ctx, ThemeName::ModernDark);
             Ok(Box::new(DemoApp::default()))
         }),
     )

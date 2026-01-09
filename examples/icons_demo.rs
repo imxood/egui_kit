@@ -3,7 +3,7 @@
 //! Run with: cargo run --example icons_demo
 
 use eframe::egui;
-use egui_kit::icons;
+use egui_remixicon::{icons, add_to_fonts};
 
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
@@ -20,7 +20,7 @@ fn main() -> eframe::Result<()> {
             // Setup fonts with icon support
             // 设置字体并支持图标
             let mut fonts = egui::FontDefinitions::default();
-            icons::add_to_fonts(&mut fonts);
+            add_to_fonts(&mut fonts);
             cc.egui_ctx.set_fonts(fonts);
 
             Ok(Box::new(IconsDemo::default()))

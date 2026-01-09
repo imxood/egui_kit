@@ -42,35 +42,6 @@
 use std::fmt;
 
 // ============================================================================
-// Icon Font Integration
-// ============================================================================
-
-/// Setup icon fonts (Remix Icon) to egui context
-/// 设置图标字体 (Remix Icon) 到 egui 上下文
-///
-/// This function creates FontDefinitions with egui defaults + Remix Icon.
-/// Note: This will reset other fonts to defaults. For custom fonts + icons,
-/// use `FontManager::new()` which automatically includes icons.
-/// 此函数创建带有 egui 默认字体 + Remix Icon 的 FontDefinitions。
-/// 注意：这会将其他字体重置为默认值。如需自定义字体 + 图标，
-/// 使用 `FontManager::new()` 会自动包含图标。
-///
-/// # Example
-/// ```rust,no_run
-/// use egui_kit::font::setup_icon_fonts;
-/// setup_icon_fonts(&ctx);
-///
-/// // Then use icons in your UI
-/// ui.label(format!("{} Settings", egui_kit::icon::icon::SETTINGS_LINE));
-/// ```
-#[cfg(feature = "icons")]
-pub fn setup_icon_fonts(ctx: &egui::Context) {
-    let mut fonts = egui::FontDefinitions::default();
-    crate::icon::add_to_fonts(&mut fonts);
-    ctx.set_fonts(fonts);
-}
-
-// ============================================================================
 // Public Types
 // ============================================================================
 
@@ -650,7 +621,7 @@ fn apply_font(
     // Add icon fonts first (if icons feature is enabled)
     // 首先添加图标字体 (如果启用了 icons 特性)
     #[cfg(feature = "icons")]
-    crate::icon::add_to_fonts(&mut fonts);
+    egui_remixicon::add_to_fonts(&mut fonts);
 
     // MEMORY CLEANUP: Log font switching for debugging
     // 内存清理：记录字体切换用于调试
@@ -734,7 +705,7 @@ fn apply_multi_language_fonts(ctx: &egui::Context, fonts: &[LoadedFont]) -> Resu
     // Add icon fonts AFTER clearing (if icons feature is enabled)
     // 在清除后添加图标字体 (如果启用了 icons 特性)
     #[cfg(feature = "icons")]
-    crate::icon::add_to_fonts(&mut font_definitions);
+    egui_remixicon::add_to_fonts(&mut font_definitions);
 
     // Log multi-language font setup
     // 记录多语言字体设置

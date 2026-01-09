@@ -2,7 +2,7 @@
 //! 简单的中文字体测试
 
 use eframe::egui;
-use egui_kit::{setup_theme, ThemePreset};
+use egui_kit::{setup_theme, ThemeName};
 
 fn main() -> Result<(), eframe::Error> {
     env_logger::init();
@@ -19,7 +19,7 @@ fn main() -> Result<(), eframe::Error> {
         native_options,
         Box::new(|cc| {
             // Apply theme
-            setup_theme(&cc.egui_ctx, ThemePreset::Dark);
+            setup_theme(&cc.egui_ctx, ThemeName::ModernDark);
 
             // Initialize font manager
             let font_manager = match egui_kit::utils::font::FontManager::new(&cc.egui_ctx) {

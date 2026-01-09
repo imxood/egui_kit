@@ -10,7 +10,8 @@
 //! cargo run -p egui_kit --example showcase
 
 use eframe::egui;
-use egui_kit::foundation::{ThemeConfig, ThemePreset, h1, h2, h3, h4, h5, h6, h7, setup_theme};
+use egui_kit::{setup_theme, ThemeName, ALL_THEMES, DARK_THEMES, LIGHT_THEMES};
+use egui_kit::foundation::style_by_name;
 
 #[cfg(feature = "font")]
 use egui_kit::utils::font::{FontManager, Language};
@@ -30,7 +31,7 @@ fn main() -> Result<(), eframe::Error> {
         native_options,
         Box::new(|cc| {
             // Apply default theme
-            setup_theme(&cc.egui_ctx, ThemePreset::Dark);
+            setup_theme(&cc.egui_ctx, ThemeName::ModernDark);
 
             // Initialize font manager
             let font_manager = match FontManager::new(&cc.egui_ctx) {
@@ -49,7 +50,7 @@ fn main() -> Result<(), eframe::Error> {
             };
 
             Ok(Box::new(ComprehensiveShowcaseApp {
-                current_theme: ThemePreset::Dark,
+                current_theme: ThemeName::ModernDark,
                 slider_value: 50.0,
                 text_input: "Type something here...".to_string(),
                 checkbox: true,
@@ -80,7 +81,7 @@ enum Tab {
 
 struct ComprehensiveShowcaseApp {
     // Original showcase state
-    current_theme: ThemePreset,
+    current_theme: ThemeName,
     slider_value: f32,
     text_input: String,
     checkbox: bool,
@@ -164,64 +165,123 @@ impl ComprehensiveShowcaseApp {
     /// Show theme showcase with font support
     #[cfg(feature = "font")]
     fn show_theme_showcase(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
-        ui.heading("🎨 Theme Showcase");
+        ui.heading("Theme Showcase");
         ui.separator();
 
+        // Current theme display
         ui.horizontal(|ui| {
             ui.label("Current Theme:");
-            ui.strong(self.current_theme.name());
+            ui.strong(self.current_theme.display_name());
+            ui.label(format!("({})", if self.current_theme.is_dark() { "Dark" } else { "Light" }));
         });
 
-        // Theme selector
-        ui.horizontal_wrapped(|ui| {
-            for preset in ThemePreset::all() {
-                let is_selected = self.current_theme == *preset;
-                if ui
-                    .selectable_label(is_selected, preset.name())
-                    .on_hover_text(preset.description())
-                    .clicked()
-                {
-                    self.current_theme = *preset;
-                    let theme = ThemeConfig::from_preset(*preset);
-                    egui_kit::apply_theme(ctx, &theme);
-                }
-            }
-        });
+        ui.add_space(10.0);
 
-        ui.add_space(20.0);
+        // Theme selector using ALL_THEMES
+        ui.group(|ui| {
+            ui.heading("All Themes (15 Total)");
+            ui.label("Click to switch theme:");
+            ui.add_space(5.0);
 
-        // Font status
-        if let Some(manager) = &self.font_manager {
-            ui.group(|ui| {
-                ui.heading("🔤 Font Status");
-                ui.separator();
-
-                ui.horizontal(|ui| {
-                    ui.label("Current Font:");
-                    ui.strong(manager.current_font());
-                    ui.label(format!("({})", manager.current_language()));
-                });
-
-                if manager.is_multi_language_mode() {
-                    ui.horizontal(|ui| {
-                        ui.label("Multi-language:");
-                        ui.strong("ON");
-                        let (languages, fonts) = manager.multi_language_info();
-                        ui.label(format!(
-                            "{} languages, {} fonts",
-                            languages.len(),
-                            fonts.len()
-                        ));
-                    });
+            // Show dark themes section with dark color header
+            ui.colored_label(egui::Color32::from_rgb(180, 180, 255), "Dark Themes (10):");
+            ui.horizontal_wrapped(|ui| {
+                for (name, _style_fn, is_dark) in ALL_THEMES.iter().copied() {
+                    if !is_dark {
+                        continue;
+                    }
+                    let is_selected = self.current_theme.display_name() == name;
+                    if ui.selectable_label(is_selected, name).clicked() {
+                        self.apply_theme_by_name(name, ctx);
+                    }
                 }
             });
-        }
+
+            ui.add_space(10.0);
+
+            // Show light themes section with light color header
+            ui.colored_label(egui::Color32::from_rgb(255, 200, 100), "Light Themes (5):");
+            ui.horizontal_wrapped(|ui| {
+                for (name, _style_fn, is_dark) in ALL_THEMES.iter().copied() {
+                    if is_dark {
+                        continue;
+                    }
+                    let is_selected = self.current_theme.display_name() == name;
+                    if ui.selectable_label(is_selected, name).clicked() {
+                        self.apply_theme_by_name(name, ctx);
+                    }
+                }
+            });
+        });
+
+        ui.add_space(15.0);
+
+        // Theme categories
+        ui.group(|ui| {
+            ui.heading("Theme Categories");
+            ui.separator();
+
+            // Dark themes grid
+            ui.colored_label(egui::Color32::from_rgb(180, 180, 255), "Dark Themes:");
+            ui.horizontal_wrapped(|ui| {
+                for (name, _style_fn, is_dark) in ALL_THEMES.iter().copied() {
+                    if !is_dark {
+                        continue;
+                    }
+                    let is_selected = self.current_theme.display_name() == name;
+                    if ui.selectable_label(is_selected, name).clicked() {
+                        self.apply_theme_by_name(name, ctx);
+                    }
+                }
+            });
+
+            ui.add_space(10.0);
+
+            // Light themes grid
+            ui.colored_label(egui::Color32::from_rgb(255, 200, 100), "Light Themes:");
+            ui.horizontal_wrapped(|ui| {
+                for (name, _style_fn, is_dark) in ALL_THEMES.iter().copied() {
+                    if is_dark {
+                        continue;
+                    }
+                    let is_selected = self.current_theme.display_name() == name;
+                    if ui.selectable_label(is_selected, name).clicked() {
+                        self.apply_theme_by_name(name, ctx);
+                    }
+                }
+            });
+        });
 
         ui.add_space(20.0);
 
         // Widget showcase
         self.show_widget_showcase(ui);
         self.show_heading_showcase(ui);
+    }
+
+    /// Apply theme by name
+    fn apply_theme_by_name(&mut self, name: &str, ctx: &egui::Context) {
+        self.current_theme = match name {
+            // Dark themes
+            "Modern Dark" => ThemeName::ModernDark,
+            "Nord" => ThemeName::Nord,
+            "Dracula" => ThemeName::Dracula,
+            "Tokyo Night" => ThemeName::TokyoNight,
+            "One Dark" => ThemeName::OneDark,
+            "Deep Black" => ThemeName::DeepBlack,
+            "Cyberpunk" => ThemeName::Cyberpunk,
+            "Matrix" => ThemeName::Matrix,
+            "Monokai" => ThemeName::Monokai,
+            "Ayu Dark" => ThemeName::AyuDark,
+            // Light themes
+            "Modern Light" => ThemeName::ModernLight,
+            "GitHub Light" => ThemeName::GitHubLight,
+            "Solarized Light" => ThemeName::SolarizedLight,
+            "Catppuccin" => ThemeName::Catppuccin,
+            "Gruvbox Light" => ThemeName::GruvboxLight,
+            _ => ThemeName::ModernDark,
+        };
+        ctx.set_style(std::sync::Arc::new(style_by_name(self.current_theme)));
     }
 
     fn show_widget_showcase(&mut self, ui: &mut egui::Ui) {
@@ -284,18 +344,16 @@ impl ComprehensiveShowcaseApp {
         ui.heading("Heading Styles (h1-h7)");
         ui.separator();
 
-        let theme = ThemeConfig::from_preset(self.current_theme);
-
         ui.group(|ui| {
             ui.heading("Basic Headings:");
             ui.add_space(5.0);
-            ui.add(h1("Heading 1 (32px)"));
-            ui.add(h2("Heading 2 (28px)"));
-            ui.add(h3("Heading 3 (24px)"));
-            ui.add(h4("Heading 4 (20px)"));
-            ui.add(h5("Heading 5 (16px)"));
-            ui.add(h6("Heading 6 (14px)"));
-            ui.add(h7("Heading 7 (12px)"));
+            ui.label(egui::RichText::new("Heading 1 (32px)").size(32.0));
+            ui.label(egui::RichText::new("Heading 2 (28px)").size(28.0));
+            ui.label(egui::RichText::new("Heading 3 (24px)").size(24.0));
+            ui.label(egui::RichText::new("Heading 4 (20px)").size(20.0));
+            ui.label(egui::RichText::new("Heading 5 (16px)").size(16.0));
+            ui.label(egui::RichText::new("Heading 6 (14px)").size(14.0));
+            ui.label(egui::RichText::new("Heading 7 (12px)").size(12.0));
         });
 
         ui.add_space(10.0);
@@ -303,11 +361,12 @@ impl ComprehensiveShowcaseApp {
         ui.group(|ui| {
             ui.heading("Colored Headings:");
             ui.add_space(5.0);
-            ui.add(h2("Primary Heading").color(theme.colors.primary));
-            ui.add(h3("Success Message").color(theme.colors.success));
-            ui.add(h4("Warning Alert").color(theme.colors.warning));
-            ui.add(h5("Error Notice").color(theme.colors.error));
-            ui.add(h6("Info Text").color(theme.colors.info));
+            // Using generic colors that work with all themes
+            ui.label(egui::RichText::new("Primary Heading").size(28.0).color(egui::Color32::from_rgb(66, 133, 244)));
+            ui.label(egui::RichText::new("Success Message").size(24.0).color(egui::Color32::from_rgb(52, 168, 83)));
+            ui.label(egui::RichText::new("Warning Alert").size(20.0).color(egui::Color32::from_rgb(251, 188, 4)));
+            ui.label(egui::RichText::new("Error Notice").size(16.0).color(egui::Color32::from_rgb(234, 67, 53)));
+            ui.label(egui::RichText::new("Info Text").size(14.0).color(egui::Color32::from_rgb(66, 133, 244)));
         });
     }
 
@@ -771,7 +830,7 @@ impl eframe::App for ComprehensiveShowcaseApp {
             ui.horizontal(|ui| {
                 ui.heading("🎨 egui Theme Showcase - Comprehensive Testing");
                 ui.separator();
-                ui.label(format!("Theme: {}", self.current_theme.name()));
+                ui.label(format!("Theme: {}", self.current_theme.display_name()));
 
                 #[cfg(feature = "font")]
                 if let Some(manager) = &self.font_manager {
