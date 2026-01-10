@@ -91,6 +91,9 @@ egui_commonmark = { version = "0.22", features = [
     "pulldown_cmark",
 ], optional = true }
 
+# Toast 通知
+egui-toast = "0.19"
+
 # 测试
 egui_kittest = { version = "0.33", optional = true }
 

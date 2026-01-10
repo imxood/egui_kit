@@ -39,6 +39,7 @@ pub mod components;
 pub mod extensions;
 pub mod foundation;
 pub mod interactions;
+pub mod toast;
 pub mod utils;
 
 #[cfg(feature = "testing")]
@@ -111,6 +112,10 @@ pub use components::{
 
 // ===== Extensions Re-exports =====
 pub use extensions::{ContextExt, UiExt, UiLayout};
+
+// ===== Toast Re-exports =====
+pub use toast::{GlobalToast, Toast};
+pub use toast::{add_toast, error, info, success, warning};
 
 // ===== Interactions Re-exports =====
 pub use interactions::*;
