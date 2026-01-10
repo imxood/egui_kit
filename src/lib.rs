@@ -13,14 +13,14 @@
 //! ## 快速开始
 //!
 //! ```rust,no_run
-//! use egui_kit::foundation::{setup_theme, ThemePreset};
+//! use egui_kit::foundation::{setup_theme, ThemeName};
 //!
 //! fn main() -> Result<(), eframe::Error> {
 //!     eframe::run_native(
 //!         "My App",
 //!         eframe::NativeOptions::default(),
 //!         Box::new(|cc| {
-//!             setup_theme(&cc.egui_ctx, ThemePreset::Dark);
+//!             setup_theme(&cc.egui_ctx, ThemeName::ModernDark);
 //!             Ok(Box::new(MyApp::new()))
 //!         }),
 //!     )
