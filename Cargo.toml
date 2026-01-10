@@ -18,13 +18,23 @@ basic-components = []
 all-components = ["basic-components"]
 
 # 功能 features
-font = ["font-kit", "sys-locale"]
-serde = ["dep:serde"]
-promise = []
-logger = ["crossbeam-channel"]
-icons = ["egui-remixicon"]
+# 字体系统：包含预定义中文字体 + 系统字体自动检测
+font = ["chinese"]
+# 系统字体自动检测（需要扫描系统字体、检测系统语言）- 仅 Native 目标
+system-font = ["dep:font-kit", "dep:sys-locale"]
+# 预定义中文字体列表（与 system-font 配合使用）
+chinese = []
+
+# 图标 features（独立于字体系统）
+icons = ["egui-phosphor"]
 markdown = ["egui_commonmark"]
 drag-and-drop = []
+
+# 日志功能
+logger = ["crossbeam-channel"]
+
+# 异步功能
+promise = []
 
 # 测试 feature
 testing = ["egui_kittest"]
@@ -67,7 +77,7 @@ web-time = "1.1"
 crossbeam-channel = { version = "0.5", optional = true }
 
 # 图标
-egui-remixicon = { git = "https://github.com/get200/egui-remixicon.git", optional = true }
+egui-phosphor = { version = "0.11", optional = true }
 
 # Promise - tokio 异步运行时
 tokio = { version = "1", features = ["rt", "sync", "test-util", "macros"] }

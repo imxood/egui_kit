@@ -117,6 +117,39 @@ impl<'a> CustomContent<'a> {
         })
     }
 
+    /// Helper to add an action button with a Phosphor icon to the right of the item.
+    #[cfg(feature = "icons")]
+    #[inline]
+    pub fn phosphor_action_button(
+        self,
+        icon: &'static str,
+        alt_text: impl Into<String>,
+        on_click: impl FnOnce() + 'a,
+    ) -> Self {
+        self.phosphor_action_button_with_enabled(icon, alt_text, true, on_click)
+    }
+
+    /// Helper to add an enabled/disabled action button with a Phosphor icon.
+    #[cfg(feature = "icons")]
+    #[inline]
+    pub fn phosphor_action_button_with_enabled(
+        self,
+        icon: &'static str,
+        alt_text: impl Into<String>,
+        enabled: bool,
+        on_click: impl FnOnce() + 'a,
+    ) -> Self {
+        let alt_text = alt_text.into();
+        self.button(move |ui: &mut Ui| {
+            ui.add(
+                egui::Button::new(egui::RichText::new(icon))
+                    .on_click(on_click)
+                    .enabled(enabled)
+                    .on_hover_text(alt_text),
+            )
+        })
+    }
+
     /// Helper to add a menu button to the right of the item.
     ///
     /// The `alt_text` will be used for accessibility (e.g. read by screen readers),

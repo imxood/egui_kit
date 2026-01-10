@@ -3,6 +3,7 @@ use egui::{Frame, ModalResponse};
 
 use crate::extensions::context_ext::ContextExt as _;
 use crate::{DesignTokens, UiExt as _};
+use egui_phosphor::regular::X;
 
 /// Helper object to handle a [`ModalWrapper`] window.
 ///
@@ -332,7 +333,7 @@ impl ModalWrapper {
                     .layout(egui::Layout::right_to_left(egui::Align::Center)),
             );
             if ui
-                .small_icon_button(&crate::components::basic::icon::CLOSE, "Close")
+                .phosphor_icon_button(X, "Close")
                 .clicked()
             {
                 ui.close();

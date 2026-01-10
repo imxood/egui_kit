@@ -4,6 +4,9 @@
 use eframe::egui;
 use egui_kit::{setup_theme, ThemeName};
 
+#[cfg(feature = "icons")]
+use egui_phosphor::regular::{HOUSE, GEAR, USER, FOLDER, FILE, ARROW_LEFT, ARROW_RIGHT, TRASH, PENCIL};
+
 fn main() -> Result<(), eframe::Error> {
     env_logger::init();
 
@@ -24,15 +27,21 @@ fn main() -> Result<(), eframe::Error> {
             // Initialize font manager
             let font_manager = match egui_kit::utils::font::FontManager::new(&cc.egui_ctx) {
                 Ok(manager) => {
-                    println!("✅ Font loaded: {}", manager.current_font());
-                    println!("   Language: {}", manager.current_language());
+                    println!("Font loaded: {}", manager.current_font());
+                    println!("Language: {}", manager.current_language());
                     Some(manager)
                 }
                 Err(e) => {
-                    eprintln!("⚠️  Font loading failed: {}", e);
+                    eprintln!("Font loading failed: {}", e);
                     None
                 }
             };
+
+            #[cfg(feature = "icons")]
+            println!("Icons feature enabled - Phosphor icons should render correctly");
+
+            #[cfg(not(feature = "icons"))]
+            println!("Icons feature NOT enabled - icons will show as boxes");
 
             Ok(Box::new(FontTestApp { font_manager }))
         }),
@@ -77,6 +86,44 @@ impl eframe::App for FontTestApp {
                 ui.label("日本語: いろはにほへと ちりぬるを わかよたれそ");
                 ui.label("한국어: 가나다라마바사 아자차카타파하");
                 ui.label("混合: Hello 世界！こんにちは 안녕하세요");
+            });
+
+            ui.add_space(10.0);
+
+            // 图标测试区域
+            #[cfg(feature = "icons")]
+            ui.group(|ui| {
+                ui.heading("Phosphor Icons Test");
+                ui.label("Icons should render as symbols, not boxes:");
+                ui.add_space(10.0);
+
+                ui.horizontal(|ui| {
+                    ui.label(format!("{} House", HOUSE));
+                    ui.label(format!("{} Gear", GEAR));
+                    ui.label(format!("{} User", USER));
+                });
+                ui.add_space(5.0);
+                ui.horizontal(|ui| {
+                    ui.label(format!("{} Folder", FOLDER));
+                    ui.label(format!("{} File", FILE));
+                    ui.label(format!("{} Trash", TRASH));
+                });
+                ui.add_space(5.0);
+                ui.horizontal(|ui| {
+                    ui.label(format!("{} Arrow Left", ARROW_LEFT));
+                    ui.label(format!("{} Arrow Right", ARROW_RIGHT));
+                    ui.label(format!("{} Pencil", PENCIL));
+                });
+
+                ui.add_space(10.0);
+                ui.label("If icons show as boxes [ ], fonts are not loaded correctly.");
+            });
+
+            #[cfg(not(feature = "icons"))]
+            ui.group(|ui| {
+                ui.heading("Phosphor Icons Test");
+                ui.colored_label(egui::Color32::from_rgb(255, 100, 100), "Icons feature NOT enabled!");
+                ui.label("Run with: cargo run --example font_test --features \"icons font\"");
             });
 
             ui.add_space(10.0);

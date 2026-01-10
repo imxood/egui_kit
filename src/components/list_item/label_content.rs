@@ -131,6 +131,21 @@ impl<'a> LabelContent<'a> {
         })
     }
 
+    /// Provide a Phosphor icon string to be displayed on the left of the item.
+    #[inline]
+    #[cfg(feature = "egui-phosphor")]
+    pub fn with_phosphor_icon(self, icon: &'static str) -> Self {
+        self.with_icon_fn(move |ui, rect, _visuals| {
+            ui.painter().text(
+                rect.center(),
+                egui::Align2::CENTER_CENTER,
+                icon,
+                egui::FontId::proportional(rect.height() * 0.8),
+                ui.style().visuals.text_color(),
+            );
+        })
+    }
+
     /// Provide a custom closure to draw an icon on the left of the item.
     #[inline]
     pub fn with_icon_fn(

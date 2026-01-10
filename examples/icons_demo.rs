@@ -1,9 +1,9 @@
-//! Icons Demo - Remix Icon usage example
+//! Icons Demo - egui-phosphor usage example
 //!
 //! Run with: cargo run --example icons_demo
 
 use eframe::egui;
-use egui_remixicon::{icons, add_to_fonts};
+use egui_phosphor::{icons, add_to_fonts};
 
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
@@ -37,19 +37,19 @@ struct IconsDemo {
 impl eframe::App for IconsDemo {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("Remix Icon Demo");
+            ui.heading("Phosphor Icons Demo");
             ui.add_space(10.0);
 
             // Search bar with icon
             // 带图标的搜索栏
             ui.horizontal(|ui| {
-                ui.label(icons::SEARCH_LINE);
+                ui.label(icons::MAGNIFYING_GLASS);
                 ui.add(
                     egui::TextEdit::singleline(&mut self.search_text)
                         .hint_text("Search...")
                         .desired_width(200.0),
                 );
-                if ui.button(format!("{} Clear", icons::CLOSE_LINE)).clicked() {
+                if ui.button(format!("{} Clear", icons::X)).clicked() {
                     self.search_text.clear();
                 }
             });
@@ -62,10 +62,10 @@ impl eframe::App for IconsDemo {
             // 带图标的标签栏
             ui.horizontal(|ui| {
                 let tabs = [
-                    (icons::HOME_LINE, "Home"),
-                    (icons::SETTINGS_LINE, "Settings"),
-                    (icons::USER_LINE, "Profile"),
-                    (icons::NOTIFICATION_LINE, "Notifications"),
+                    (icons::HOUSE, "Home"),
+                    (icons::GEAR, "Settings"),
+                    (icons::USER, "Profile"),
+                    (icons::BELL, "Notifications"),
                 ];
 
                 for (i, (icon, label)) in tabs.iter().enumerate() {
@@ -83,85 +83,85 @@ impl eframe::App for IconsDemo {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 ui.collapsing("Navigation Icons", |ui| {
                     icon_grid(ui, &[
-                        (icons::HOME_LINE, "HOME_LINE"),
-                        (icons::ARROW_LEFT_LINE, "ARROW_LEFT_LINE"),
-                        (icons::ARROW_RIGHT_LINE, "ARROW_RIGHT_LINE"),
-                        (icons::ARROW_UP_LINE, "ARROW_UP_LINE"),
-                        (icons::ARROW_DOWN_LINE, "ARROW_DOWN_LINE"),
-                        (icons::MENU_LINE, "MENU_LINE"),
-                        (icons::MORE_LINE, "MORE_LINE"),
+                        (icons::HOUSE, "HOUSE"),
+                        (icons::ARROW_LEFT, "ARROW_LEFT"),
+                        (icons::ARROW_RIGHT, "ARROW_RIGHT"),
+                        (icons::ARROW_UP, "ARROW_UP"),
+                        (icons::ARROW_DOWN, "ARROW_DOWN"),
+                        (icons::LIST, "LIST"),
+                        (icons::DOTS_THREE, "DOTS_THREE"),
                     ]);
                 });
 
                 ui.collapsing("Action Icons", |ui| {
                     icon_grid(ui, &[
-                        (icons::ADD_LINE, "ADD_LINE"),
-                        (icons::SUBTRACT_LINE, "SUBTRACT_LINE"),
-                        (icons::CLOSE_LINE, "CLOSE_LINE"),
-                        (icons::CHECK_LINE, "CHECK_LINE"),
-                        (icons::EDIT_LINE, "EDIT_LINE"),
-                        (icons::DELETE_BIN_LINE, "DELETE_BIN_LINE"),
-                        (icons::SAVE_LINE, "SAVE_LINE"),
-                        (icons::DOWNLOAD_LINE, "DOWNLOAD_LINE"),
-                        (icons::UPLOAD_LINE, "UPLOAD_LINE"),
-                        (icons::REFRESH_LINE, "REFRESH_LINE"),
+                        (icons::PLUS, "PLUS"),
+                        (icons::MINUS, "MINUS"),
+                        (icons::X, "X"),
+                        (icons::CHECK, "CHECK"),
+                        (icons::PENCIL, "PENCIL"),
+                        (icons::TRASH, "TRASH"),
+                        (icons::FLOPPY_DISK, "FLOPPY_DISK"),
+                        (icons::DOWNLOAD_SIMPLE, "DOWNLOAD_SIMPLE"),
+                        (icons::UPLOAD_SIMPLE, "UPLOAD_SIMPLE"),
+                        (icons::ARROW_CLOCKWISE, "ARROW_CLOCKWISE"),
                     ]);
                 });
 
                 ui.collapsing("Communication Icons", |ui| {
                     icon_grid(ui, &[
-                        (icons::MAIL_LINE, "MAIL_LINE"),
-                        (icons::MESSAGE_LINE, "MESSAGE_LINE"),
-                        (icons::CHAT_1_LINE, "CHAT_1_LINE"),
-                        (icons::NOTIFICATION_LINE, "NOTIFICATION_LINE"),
-                        (icons::PHONE_LINE, "PHONE_LINE"),
+                        (icons::ENVELOPE, "ENVELOPE"),
+                        (icons::CHAT_CIRCLE, "CHAT_CIRCLE"),
+                        (icons::CHATS, "CHATS"),
+                        (icons::BELL, "BELL"),
+                        (icons::PHONE, "PHONE"),
                     ]);
                 });
 
                 ui.collapsing("Media Icons", |ui| {
                     icon_grid(ui, &[
-                        (icons::PLAY_LINE, "PLAY_LINE"),
-                        (icons::PAUSE_LINE, "PAUSE_LINE"),
-                        (icons::STOP_LINE, "STOP_LINE"),
-                        (icons::SKIP_BACK_LINE, "SKIP_BACK_LINE"),
-                        (icons::SKIP_FORWARD_LINE, "SKIP_FORWARD_LINE"),
-                        (icons::VOLUME_UP_LINE, "VOLUME_UP_LINE"),
-                        (icons::VOLUME_DOWN_LINE, "VOLUME_DOWN_LINE"),
-                        (icons::VOLUME_MUTE_LINE, "VOLUME_MUTE_LINE"),
+                        (icons::PLAY, "PLAY"),
+                        (icons::PAUSE, "PAUSE"),
+                        (icons::STOP, "STOP"),
+                        (icons::SKIP_BACK, "SKIP_BACK"),
+                        (icons::SKIP_FORWARD, "SKIP_FORWARD"),
+                        (icons::VOLUME_HIGH, "VOLUME_HIGH"),
+                        (icons::VOLUME_LOW, "VOLUME_LOW"),
+                        (icons::VOLUME_X, "VOLUME_X"),
                     ]);
                 });
 
                 ui.collapsing("File Icons", |ui| {
                     icon_grid(ui, &[
-                        (icons::FILE_LINE, "FILE_LINE"),
-                        (icons::FOLDER_LINE, "FOLDER_LINE"),
-                        (icons::FOLDER_OPEN_LINE, "FOLDER_OPEN_LINE"),
-                        (icons::FILE_COPY_LINE, "FILE_COPY_LINE"),
-                        (icons::FILE_ADD_LINE, "FILE_ADD_LINE"),
+                        (icons::FILE, "FILE"),
+                        (icons::FOLDER, "FOLDER"),
+                        (icons::FOLDER_OPEN, "FOLDER_OPEN"),
+                        (icons::FILE_COPY, "FILE_COPY"),
+                        (icons::FILE_PLUS, "FILE_PLUS"),
                     ]);
                 });
 
                 ui.collapsing("System Icons", |ui| {
                     icon_grid(ui, &[
-                        (icons::SETTINGS_LINE, "SETTINGS_LINE"),
-                        (icons::LOCK_LINE, "LOCK_LINE"),
-                        (icons::LOCK_UNLOCK_LINE, "LOCK_UNLOCK_LINE"),
-                        (icons::EYE_LINE, "EYE_LINE"),
-                        (icons::EYE_OFF_LINE, "EYE_OFF_LINE"),
-                        (icons::SEARCH_LINE, "SEARCH_LINE"),
-                        (icons::FILTER_LINE, "FILTER_LINE"),
-                        (icons::TIME_LINE, "TIME_LINE"),
-                        (icons::CALENDAR_LINE, "CALENDAR_LINE"),
+                        (icons::GEAR, "GEAR"),
+                        (icons::LOCK, "LOCK"),
+                        (icons::LOCK_OPEN, "LOCK_OPEN"),
+                        (icons::EYE, "EYE"),
+                        (icons::EYE_SLASH, "EYE_SLASH"),
+                        (icons::MAGNIFYING_GLASS, "MAGNIFYING_GLASS"),
+                        (icons::FUNNEL, "FUNNEL"),
+                        (icons::CLOCK, "CLOCK"),
+                        (icons::CALENDAR, "CALENDAR"),
                     ]);
                 });
 
                 ui.collapsing("Status Icons", |ui| {
                     icon_grid(ui, &[
-                        (icons::CHECKBOX_CIRCLE_LINE, "CHECKBOX_CIRCLE_LINE"),
-                        (icons::CLOSE_CIRCLE_LINE, "CLOSE_CIRCLE_LINE"),
-                        (icons::ERROR_WARNING_LINE, "ERROR_WARNING_LINE"),
-                        (icons::INFORMATION_LINE, "INFORMATION_LINE"),
-                        (icons::QUESTION_LINE, "QUESTION_LINE"),
+                        (icons::CHECK_CIRCLE, "CHECK_CIRCLE"),
+                        (icons::X_CIRCLE, "X_CIRCLE"),
+                        (icons::WARNING, "WARNING"),
+                        (icons::INFO, "INFO"),
+                        (icons::QUESTION, "QUESTION"),
                     ]);
                 });
 
@@ -173,13 +173,13 @@ impl eframe::App for IconsDemo {
                 ui.add_space(10.0);
 
                 ui.horizontal(|ui| {
-                    if ui.button(format!("{} Save", icons::SAVE_LINE)).clicked() {
+                    if ui.button(format!("{} Save", icons::FLOPPY_DISK)).clicked() {
                         // Save action
                     }
-                    if ui.button(format!("{} Cancel", icons::CLOSE_LINE)).clicked() {
+                    if ui.button(format!("{} Cancel", icons::X)).clicked() {
                         // Cancel action
                     }
-                    if ui.button(format!("{} Delete", icons::DELETE_BIN_LINE)).clicked() {
+                    if ui.button(format!("{} Delete", icons::TRASH)).clicked() {
                         // Delete action
                     }
                 });
@@ -190,16 +190,16 @@ impl eframe::App for IconsDemo {
                 // 图标大小
                 ui.label("Icon Sizes:");
                 ui.horizontal(|ui| {
-                    ui.label(egui::RichText::new(icons::STAR_LINE).size(12.0));
+                    ui.label(egui::RichText::new(icons::STAR).size(12.0));
                     ui.label("12px");
                     ui.add_space(10.0);
-                    ui.label(egui::RichText::new(icons::STAR_LINE).size(16.0));
+                    ui.label(egui::RichText::new(icons::STAR).size(16.0));
                     ui.label("16px");
                     ui.add_space(10.0);
-                    ui.label(egui::RichText::new(icons::STAR_LINE).size(24.0));
+                    ui.label(egui::RichText::new(icons::STAR).size(24.0));
                     ui.label("24px");
                     ui.add_space(10.0);
-                    ui.label(egui::RichText::new(icons::STAR_LINE).size(32.0));
+                    ui.label(egui::RichText::new(icons::STAR).size(32.0));
                     ui.label("32px");
                 });
 
@@ -209,11 +209,11 @@ impl eframe::App for IconsDemo {
                 // 图标颜色
                 ui.label("Icon Colors:");
                 ui.horizontal(|ui| {
-                    ui.label(egui::RichText::new(icons::HEART_FILL).size(24.0).color(egui::Color32::RED));
-                    ui.label(egui::RichText::new(icons::STAR_FILL).size(24.0).color(egui::Color32::GOLD));
-                    ui.label(egui::RichText::new(icons::CHECKBOX_CIRCLE_FILL).size(24.0).color(egui::Color32::GREEN));
-                    ui.label(egui::RichText::new(icons::INFORMATION_FILL).size(24.0).color(egui::Color32::from_rgb(100, 149, 237)));
-                    ui.label(egui::RichText::new(icons::ERROR_WARNING_FILL).size(24.0).color(egui::Color32::from_rgb(255, 165, 0)));
+                    ui.label(egui::RichText::new(icons::HEART).size(24.0).color(egui::Color32::RED));
+                    ui.label(egui::RichText::new(icons::STAR).size(24.0).color(egui::Color32::GOLD));
+                    ui.label(egui::RichText::new(icons::CHECK_CIRCLE).size(24.0).color(egui::Color32::GREEN));
+                    ui.label(egui::RichText::new(icons::INFO).size(24.0).color(egui::Color32::from_rgb(100, 149, 237)));
+                    ui.label(egui::RichText::new(icons::WARNING).size(24.0).color(egui::Color32::from_rgb(255, 165, 0)));
                 });
             });
         });

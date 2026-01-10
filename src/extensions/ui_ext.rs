@@ -6,6 +6,9 @@ use egui::{
     WidgetInfo, WidgetText, pos2,
 };
 
+#[cfg(feature = "icons")]
+use egui_phosphor::regular::{COPY, EYE, EYE_SLASH};
+
 use crate::components::alert::Alert;
 use crate::components::button::ReButton;
 use crate::components::list_item::{self, LabelContent};
@@ -279,15 +282,73 @@ pub trait UiExt {
 
     fn visibility_toggle_button(&mut self, visible: &mut bool) -> egui::Response {
         let mut response = if *visible && self.ui().is_enabled() {
-            self.small_icon_button(&icon::VISIBLE, "Make invisible")
+            self.phosphor_icon_button(EYE, "Make invisible")
         } else {
-            self.small_icon_button(&icon::INVISIBLE, "Make visible")
+            self.phosphor_icon_button(EYE_SLASH, "Make visible")
         };
         if response.clicked() {
             response.mark_changed();
             *visible = !*visible;
         }
         response
+    }
+
+    // ============================================================================
+    // Phosphor Icons (using egui-phosphor)
+    // ============================================================================
+
+    /// Add a small Phosphor icon button.
+    #[cfg(feature = "icons")]
+    fn phosphor_icon_button(&mut self, icon: &str, _alt_text: impl Into<String>) -> egui::Response {
+        let ui = self.ui_mut();
+        let size = ui.tokens().small_icon_size;
+        let mut response = ui.add_sized(size, egui::Button::new(egui::RichText::new(icon).size(size.y)));
+        if response.clicked() {
+            response.mark_changed();
+        }
+        response
+    }
+
+    /// Create a Phosphor icon button widget (for advanced customization).
+    #[cfg(feature = "icons")]
+    fn phosphor_icon_button_widget(&self, icon: &str, _alt_text: impl Into<String>) -> egui::Button<'_> {
+        egui::Button::new(egui::RichText::new(icon).size(self.tokens().small_icon_size.y))
+    }
+
+    /// Add a medium-sized Phosphor icon toggle button.
+    #[cfg(feature = "icons")]
+    fn phosphor_icon_toggle_button(
+        &mut self,
+        icon: &str,
+        _alt_text: impl Into<String>,
+        selected: &mut bool,
+    ) -> egui::Response {
+        let ui = self.ui_mut();
+        let size = egui::Vec2::splat(16.0);
+        let tint = if *selected {
+            ui.visuals().widgets.inactive.fg_stroke.color
+        } else {
+            ui.visuals().widgets.noninteractive.fg_stroke.color
+        };
+        let text = egui::RichText::new(icon).size(size.x).color(tint);
+        let mut response = ui.add(egui::Button::new(text).min_size(size));
+        if response.clicked() {
+            *selected = !*selected;
+            response.mark_changed();
+        }
+        response
+    }
+
+    /// Add a Phosphor icon label (non-interactive).
+    #[cfg(feature = "icons")]
+    fn phosphor_icon(&mut self, icon: &str, tint: Option<egui::Color32>) {
+        let ui = self.ui_mut();
+        let size = ui.tokens().small_icon_size;
+        let mut text = egui::RichText::new(icon).size(size.y);
+        if let Some(t) = tint {
+            text = text.color(t);
+        }
+        ui.add_sized(size, egui::Label::new(text));
     }
 
     /// Create a separator similar to [`egui::Separator`] but with the full span behavior.
@@ -866,28 +927,14 @@ pub trait UiExt {
                     tokens.small_icon_size,
                 );
 
-                let shape_idx = ui.painter().add(egui::Shape::Noop);
-                let copy_response = ui.place(
-                    copy_rect,
-                    ui.small_icon_button_widget(&icon::COPY, "Copy")
-                        .frame(false),
+                let mut child_ui = ui.new_child(
+                    egui::UiBuilder::new()
+                        .max_rect(copy_rect)
+                        .layout(egui::Layout::left_to_right(egui::Align::Center)),
                 );
-
-                let copy_visuals = ui.style().interact(&copy_response);
-
-                let color = if !copy_response.contains_pointer() {
-                    visuals.weak_bg_fill
-                } else {
-                    copy_visuals.weak_bg_fill
-                };
-
-                ui.painter().set(
-                    shape_idx,
-                    egui::Shape::rect_filled(
-                        copy_response.rect.expand(copy_visuals.expansion),
-                        visuals.corner_radius,
-                        color,
-                    ),
+                let copy_response = child_ui.add(
+                    egui::Button::new(egui::RichText::new(COPY).size(tokens.small_icon_size.y))
+                        .frame(false),
                 );
 
                 if copy_response.clicked() {

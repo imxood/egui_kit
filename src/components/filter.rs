@@ -4,7 +4,9 @@ use egui::{Color32, NumExt as _, Widget as _};
 use itertools::Itertools as _;
 use smallvec::SmallVec;
 
-use crate::{UiExt as _, components::basic::icon, list_item};
+use crate::UiExt;
+use crate::list_item;
+use egui_phosphor::regular::{MAGNIFYING_GLASS, X};
 
 /// State for the filter widget when it is toggled on.
 #[derive(Debug, Clone)]
@@ -169,12 +171,8 @@ impl FilterState {
                         }
                     })
                     .with_content_width(text_width)
-                    .action_button(
-                        if is_searching {
-                            &icon::CLOSE
-                        } else {
-                            &icon::SEARCH
-                        },
+                    .phosphor_action_button(
+                        if is_searching { X } else { MAGNIFYING_GLASS },
                         if is_searching {
                             "Stop search"
                         } else {
@@ -232,11 +230,11 @@ impl FilterState {
                 ui.horizontal(|ui| {
                     ui.set_height(19.0);
 
-                    ui.add_enabled_ui(false, |ui| ui.small_icon_button(&icon::SEARCH, "Search"));
+                    ui.add_enabled_ui(false, |ui| ui.phosphor_icon_button(MAGNIFYING_GLASS, "Search"));
 
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if !inner_state.filter_query.is_empty()
-                            && ui.small_icon_button(&icon::CLOSE, "Close").clicked()
+                            && ui.phosphor_icon_button(X, "Close").clicked()
                         {
                             *inner_state = Default::default();
                         }

@@ -1,7 +1,8 @@
 use egui::{InnerResponse, Response, Ui, Vec2};
 
 use crate::foundation::tokens::AlertVisuals;
-use crate::{Icon, UiExt as _, components::basic::icon};
+use crate::UiExt;
+use egui_phosphor::regular::{CHECK_CIRCLE, INFO, WARNING, X_CIRCLE};
 
 enum AlertKind {
     Info,
@@ -20,12 +21,12 @@ impl AlertKind {
         }
     }
 
-    fn icon(&self) -> Icon {
+    fn icon_str(&self) -> &'static str {
         match self {
-            Self::Info => icon::INFO,
-            Self::Success => icon::SUCCESS,
-            Self::Warning => icon::WARNING,
-            Self::Error => icon::ERROR,
+            Self::Info => INFO,
+            Self::Success => CHECK_CIRCLE,
+            Self::Warning => WARNING,
+            Self::Error => X_CIRCLE,
         }
     }
 }
@@ -83,7 +84,7 @@ impl Alert {
         self.frame(ui).show(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.spacing_mut().item_spacing = Vec2::splat(4.0);
-                ui.small_icon(&self.kind.icon(), Some(self.kind.colors(ui).icon));
+                ui.phosphor_icon(self.kind.icon_str(), Some(self.kind.colors(ui).icon));
                 content(ui)
             })
             .inner

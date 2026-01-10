@@ -1021,9 +1021,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "egui-remixicon"
-version = "0.33.0"
-source = "git+https://github.com/get200/egui-remixicon.git#e090c9ba8b60ec560c8324c9e6c06cd57a891261"
+name = "egui-phosphor"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3b2838620355debaeb7fa3cc331a1d8ab77e6387d40e65686fa468c229dbf63"
 dependencies = [
  "egui",
 ]
@@ -1136,7 +1137,7 @@ dependencies = [
  "crossbeam-channel",
  "eframe",
  "egui",
- "egui-remixicon",
+ "egui-phosphor",
  "egui_commonmark",
  "egui_extras",
  "egui_kittest",

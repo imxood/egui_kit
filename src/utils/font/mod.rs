@@ -42,6 +42,13 @@
 use std::fmt;
 
 // ============================================================================
+// Chinese Font Embedded Data (WASM + chinese feature)
+// ============================================================================
+
+#[cfg(all(target_arch = "wasm32", feature = "chinese"))]
+const CHINESE_FONT_DATA: &[u8] = include_bytes!("../../../assets/DroidSansFallbackFull.ttf");
+
+// ============================================================================
 // Public Types
 // ============================================================================
 
@@ -115,7 +122,14 @@ impl std::error::Error for FontError {}
 /// Supports both single language mode and multi-language fallback mode.
 /// Create one instance at application startup and keep it alive.
 pub struct FontManager {
+    /// Font loader (only available with system-font feature)
+    #[cfg(feature = "system-font")]
     loader: FontLoader,
+    /// Available system fonts (only available with system-font feature)
+    #[cfg(feature = "system-font")]
+    available_fonts: Vec<String>,
+    /// Available system fonts (empty for chinese-only mode)
+    #[cfg(not(feature = "system-font"))]
     available_fonts: Vec<String>,
     // Single language mode (current)
     current_language: Language,
@@ -131,42 +145,117 @@ impl FontManager {
     /// Initialize font manager with auto-detected language
     ///
     /// This will:
-    /// 1. Detect system language
-    /// 2. Scan system fonts (list only, no data loading)
-    /// 3. Select best font for detected language
-    /// 4. Load and apply font to egui context
+    /// 1. For Native + system-font: Detect system language and scan system fonts
+    /// 2. For WASM + chinese: Load embedded Chinese TTF font automatically
+    /// 3. Load and apply font to egui context
     ///
     /// # Errors
     ///
     /// Returns error if font scanning or loading fails
     pub fn new(ctx: &egui::Context) -> Result<Self, FontError> {
-        // 1. Detect system language
-        let language = detect_system_language();
-        log::info!("Detected system language: {}", language);
+        // With system-font feature (full functionality for native targets)
+        #[cfg(feature = "system-font")]
+        {
+            let language = detect_system_language();
+            let mut loader = FontLoader::new()?;
+            let available_fonts = loader.scan_system_fonts()?;
+            log::info!("Found {} system fonts", available_fonts.len());
 
-        // 2. Create loader and scan fonts
-        let mut loader = FontLoader::new()?;
-        let available_fonts = loader.scan_system_fonts()?;
-        log::info!("Found {} system fonts", available_fonts.len());
+            let font = loader.load_best_font_for_language(language)?;
+            log::info!("Loaded font: {} for {}", font.family_name, language);
 
-        // 3. Load best font for language
-        let font = loader.load_best_font_for_language(language)?;
-        log::info!("Loaded font: {} for {}", font.family_name, language);
+            apply_font(ctx, &font, None, egui::FontFamily::Proportional)?;
+            apply_font(ctx, &font, None, egui::FontFamily::Monospace)?;
 
-        // 4. Apply to egui (no previous font for initial setup)
-        apply_font(ctx, &font, None, egui::FontFamily::Proportional)?;
+            return Ok(Self {
+                loader,
+                available_fonts,
+                current_language: language,
+                current_font: font.family_name.clone(),
+                previous_font: None,
+                selected_languages: vec![language],
+                multi_language_fonts: vec![font.family_name.clone()],
+                is_multi_language_mode: false,
+            });
+        }
 
-        Ok(Self {
-            loader,
-            available_fonts,
-            current_language: language,
-            current_font: font.family_name.clone(),
-            previous_font: None,
-            // Initialize multi-language mode with auto-detected language
-            selected_languages: vec![language],
-            multi_language_fonts: vec![font.family_name.clone()],
-            is_multi_language_mode: false,
-        })
+        // WASM + chinese feature: Load embedded Chinese TTF automatically
+        #[cfg(all(target_arch = "wasm32", feature = "chinese"))]
+        {
+            log::info!("WASM + chinese: Loading embedded Chinese font");
+
+            // Create font data from embedded TTF
+            let font_data = CHINESE_FONT_DATA.to_vec();
+            let font_name = "DroidSansFallback".to_string();
+
+            // Setup font definitions with embedded font
+            let mut fonts = egui::FontDefinitions::default();
+
+            // Add icon fonts first (if icons feature is enabled)
+            #[cfg(feature = "icons")]
+            egui_phosphor::add_to_fonts(&mut fonts, egui_phosphor::Variant::Regular);
+
+            // Insert Chinese font
+            fonts.font_data.insert(
+                font_name.clone(),
+                std::sync::Arc::new(egui::FontData::from_owned(font_data)),
+            );
+
+            // Add to both font families for proper CJK rendering
+            for family in [egui::FontFamily::Proportional, egui::FontFamily::Monospace] {
+                if let Some(font_list) = fonts.families.get_mut(&family) {
+                    font_list.push(font_name.clone());
+                }
+            }
+
+            // Add Phosphor icon font to Monospace family
+            #[cfg(feature = "icons")]
+            {
+                if let Some(font_list) = fonts.families.get_mut(&egui::FontFamily::Monospace) {
+                    font_list.insert(1, "phosphor".to_string());
+                }
+            }
+
+            ctx.set_fonts(fonts);
+            ctx.request_repaint();
+
+            log::info!("WASM + chinese: Embedded Chinese font loaded successfully");
+
+            return Ok(Self {
+                #[cfg(feature = "system-font")]
+                loader: FontLoader::new()?,
+                #[cfg(feature = "system-font")]
+                available_fonts: Vec::new(),
+                #[cfg(not(feature = "system-font"))]
+                available_fonts: Vec::new(),
+                current_language: Language::Chinese,
+                current_font: font_name.clone(),
+                previous_font: None,
+                selected_languages: vec![Language::Chinese],
+                multi_language_fonts: vec![font_name],
+                is_multi_language_mode: false,
+            });
+        }
+
+        // No suitable configuration - return Ok with empty fonts (use egui defaults)
+        #[cfg(not(any(feature = "system-font", all(target_arch = "wasm32", feature = "chinese"))))]
+        {
+            log::info!("FontManager: No font features enabled, using egui default fonts");
+            return Ok(Self {
+                #[cfg(feature = "system-font")]
+                loader: FontLoader::new()?,
+                #[cfg(feature = "system-font")]
+                available_fonts: Vec::new(),
+                #[cfg(not(feature = "system-font"))]
+                available_fonts: Vec::new(),
+                current_language: Language::English,
+                current_font: "default".to_string(),
+                previous_font: None,
+                selected_languages: vec![],
+                multi_language_fonts: vec![],
+                is_multi_language_mode: false,
+            });
+        }
     }
 
     /// Get all available system fonts
@@ -189,6 +278,7 @@ impl FontManager {
     /// # Errors
     ///
     /// Returns error if no suitable font found for language
+    #[cfg(feature = "system-font")]
     pub fn switch_language(
         &mut self,
         ctx: &egui::Context,
@@ -228,6 +318,7 @@ impl FontManager {
     /// # Errors
     ///
     /// Returns error if font not found or loading fails
+    #[cfg(feature = "system-font")]
     pub fn switch_font(&mut self, ctx: &egui::Context, family_name: &str) -> Result<(), FontError> {
         let font = self.loader.load_font(family_name)?;
 
@@ -307,6 +398,7 @@ impl FontManager {
 
     /// Apply multi-language fonts to context
     /// 应用多语言字体到上下文
+    #[cfg(feature = "system-font")]
     pub fn apply_multi_language_fonts(&mut self, ctx: &egui::Context) -> Result<(), FontError> {
         if !self.is_multi_language_mode {
             return Err(FontError::NoSuitableFont(Language::English)); // Use English as error placeholder
@@ -315,8 +407,6 @@ impl FontManager {
         if self.selected_languages.is_empty() {
             return Err(FontError::NoSuitableFont(Language::English));
         }
-
-        eprint!("self.selected_languages: {:?}", self.selected_languages);
 
         // Load fonts for all selected languages
         let mut loaded_fonts = Vec::new();
@@ -363,6 +453,7 @@ impl FontManager {
     /// This method completely resets the font system and rebuilds from scratch
     /// 同步选择的语言并应用字体
     /// 此方法完全重置字体系统并从头开始重建
+    #[cfg(feature = "system-font")]
     pub fn sync_selected_languages(
         &mut self,
         ctx: &egui::Context,
@@ -460,17 +551,20 @@ impl FontManager {
 // ============================================================================
 
 struct FontLoader {
+    #[cfg(feature = "system-font")]
     system_source: font_kit::source::SystemSource,
 }
 
 impl FontLoader {
     fn new() -> Result<Self, FontError> {
         Ok(Self {
+            #[cfg(feature = "system-font")]
             system_source: font_kit::source::SystemSource::new(),
         })
     }
 
     /// Scan system fonts and return family names (doesn't load data)
+    #[cfg(feature = "system-font")]
     fn scan_system_fonts(&mut self) -> Result<Vec<String>, FontError> {
         let families = self
             .system_source
@@ -483,12 +577,13 @@ impl FontLoader {
     }
 
     /// Load best font for specified language
+    #[cfg(feature = "system-font")]
     fn load_best_font_for_language(&self, language: Language) -> Result<LoadedFont, FontError> {
         let presets = FontPresets::for_language(language);
 
         // Try each preset in priority order
         for family_name in presets {
-            match self.load_font(family_name) {
+            match load_font_by_name(family_name) {
                 Ok(font) => return Ok(font),
                 Err(e) => {
                     log::debug!("Failed to load preset font '{}': {}", family_name, e);
@@ -500,6 +595,7 @@ impl FontLoader {
     }
 
     /// Load specific font by family name
+    #[cfg(feature = "system-font")]
     fn load_font(&self, family_name: &str) -> Result<LoadedFont, FontError> {
         let family = self
             .system_source
@@ -578,12 +674,42 @@ impl FontPresets {
 }
 
 // ============================================================================
+// Load font by name using font-kit (internal helper)
+// ============================================================================
+
+/// Load font by name using font-kit (internal helper)
+#[cfg(feature = "system-font")]
+fn load_font_by_name(family_name: &str) -> Result<LoadedFont, FontError> {
+    let family = font_kit::source::SystemSource::new()
+        .select_family_by_name(family_name)
+        .map_err(|_| FontError::FontNotFound(family_name.to_string()))?;
+
+    let handle = family
+        .fonts()
+        .first()
+        .ok_or_else(|| FontError::NoFontInFamily(family_name.to_string()))?;
+
+    let data = match handle {
+        font_kit::handle::Handle::Path { path, .. } => {
+            std::fs::read(path).map_err(|e| FontError::LoadFailed(e.to_string()))?
+        }
+        font_kit::handle::Handle::Memory { bytes, .. } => bytes.to_vec(),
+    };
+
+    Ok(LoadedFont {
+        family_name: family_name.to_string(),
+        data,
+    })
+}
+
+// ============================================================================
 // System Language Detection
 // ============================================================================
 
 /// Detect system language using sys-locale
+#[cfg(feature = "system-font")]
 pub fn detect_system_language() -> Language {
-    let locale = sys_locale::get_locale().unwrap_or_else(|| "en-US".to_string());
+    let locale = get_locale().unwrap_or_else(|| "en-US".to_string());
     log::debug!("System locale: {}", locale);
 
     // Parse locale string (e.g., "zh-CN", "en-US", "ja-JP")
@@ -621,18 +747,18 @@ fn apply_font(
     // Add icon fonts first (if icons feature is enabled)
     // 首先添加图标字体 (如果启用了 icons 特性)
     #[cfg(feature = "icons")]
-    egui_remixicon::add_to_fonts(&mut fonts);
+    egui_phosphor::add_to_fonts(&mut fonts, egui_phosphor::Variant::Regular);
 
     // MEMORY CLEANUP: Log font switching for debugging
     // 内存清理：记录字体切换用于调试
     if let Some(prev_font) = previous_font {
         if prev_font != font.family_name {
-            log::debug!("🔄 Font switch: {} -> {}", prev_font, font.family_name);
+            log::debug!("Font switch: {} -> {}", prev_font, font.family_name);
         } else {
-            log::debug!("⚡ Font reloaded: {}", font.family_name);
+            log::debug!("Font reloaded: {}", font.family_name);
         }
     } else {
-        log::debug!("🆕 Initial font: {}", font.family_name);
+        log::debug!("Initial font: {}", font.family_name);
     }
 
     // Insert new font data only
@@ -641,6 +767,18 @@ fn apply_font(
         font.family_name.clone(),
         std::sync::Arc::new(egui::FontData::from_owned(font.data.clone())),
     );
+
+    // CRITICAL: Add Phosphor icon font to Monospace family
+    // 注意：Proportional 家族由 egui_phosphor::add_to_fonts() 自动处理
+    // 关键：将 Phosphor 图标字体添加到 Monospace 家族用于图标渲染
+    #[cfg(feature = "icons")]
+    {
+        if let Some(font_list) = fonts.families.get_mut(&egui::FontFamily::Monospace) {
+            // Insert at position 1, after default font, for proper icon rendering
+            // 插入到位置 1（在默认字体之后），确保图标正确渲染
+            font_list.insert(1, "phosphor".to_string());
+        }
+    }
 
     // CRITICAL INSIGHT: Based on working reference code
     // 关键洞察：基于可运行的参考代码
@@ -675,7 +813,7 @@ fn apply_font(
 
     // Log memory optimization
     // 记录内存优化
-    log::debug!("🧹 Font memory cleanup completed");
+    log::debug!("Font memory cleanup completed");
 
     Ok(())
 }
@@ -705,11 +843,21 @@ fn apply_multi_language_fonts(ctx: &egui::Context, fonts: &[LoadedFont]) -> Resu
     // Add icon fonts AFTER clearing (if icons feature is enabled)
     // 在清除后添加图标字体 (如果启用了 icons 特性)
     #[cfg(feature = "icons")]
-    egui_remixicon::add_to_fonts(&mut font_definitions);
+    egui_phosphor::add_to_fonts(&mut font_definitions, egui_phosphor::Variant::Regular);
+
+    // CRITICAL: Add Phosphor icon font to Monospace family
+    // 注意：Proportional 家族由 egui_phosphor::add_to_fonts() 自动处理
+    #[cfg(feature = "icons")]
+    {
+        if let Some(font_list) = font_definitions.families.get_mut(&egui::FontFamily::Monospace) {
+            // Insert at position 1, after default font, for proper icon rendering
+            font_list.insert(1, "phosphor".to_string());
+        }
+    }
 
     // Log multi-language font setup
     // 记录多语言字体设置
-    log::debug!("🌍 Setting up strict multi-language fonts:");
+    log::debug!("Setting up strict multi-language fonts:");
     for (i, font) in fonts.iter().enumerate() {
         log::debug!(
             "  {}. {} ({})",
@@ -737,12 +885,6 @@ fn apply_multi_language_fonts(ctx: &egui::Context, fonts: &[LoadedFont]) -> Resu
             for font in fonts {
                 font_list.push(font.family_name.clone());
             }
-
-            // CRITICAL: Do not add any fallback fonts that haven't been loaded
-            // 关键：不添加任何未加载的fallback字体
-            // If user only selects non-Latin fonts (e.g., Japanese only),
-            // Latin characters will show as placeholder boxes - this is expected behavior
-            // 如果用户只选择非拉丁字体（如仅日语），拉丁字符会显示为占位符框 - 这是预期行为
         }
     }
 
@@ -755,7 +897,7 @@ fn apply_multi_language_fonts(ctx: &egui::Context, fonts: &[LoadedFont]) -> Resu
     ctx.request_repaint();
 
     log::debug!(
-        "🧹 Strict multi-language font setup completed with {} fonts",
+        "Strict multi-language font setup completed with {} fonts",
         fonts.len()
     );
 

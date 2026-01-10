@@ -10,10 +10,11 @@
 use std::time::Duration;
 
 use egui::{NumExt as _, Widget as _};
+use egui_phosphor::regular::{BELL, CHECK_CIRCLE, INFO, WARNING, X, X_CIRCLE};
 use jiff::Timestamp;
 pub use log::Level;
 
-use crate::{UiExt as _, components::basic::icon};
+use crate::UiExt;
 
 /// A log message with metadata
 pub struct LogMsg {
@@ -41,19 +42,13 @@ impl NotificationLevel {
         }
     }
 
-    fn icon(&self) -> &icon::Icon {
+    fn icon_str(&self) -> &'static str {
         match self {
-            Self::Tip | Self::Info => &icon::INFO,
-            Self::Success => &icon::SUCCESS,
-            Self::Warning => &icon::WARNING,
-            Self::Error => &icon::ERROR,
+            Self::Tip | Self::Info => INFO,
+            Self::Success => CHECK_CIRCLE,
+            Self::Warning => WARNING,
+            Self::Error => X_CIRCLE,
         }
-    }
-
-    fn image(&self, ui: &egui::Ui) -> egui::Image<'_> {
-        let color = self.color(ui);
-        let icon = self.icon();
-        icon.as_image().tint(color)
     }
 }
 
@@ -261,8 +256,8 @@ impl NotificationUi {
         let popup_id = notification_panel_popup_id();
 
         let is_panel_visible = egui::Popup::is_id_open(ui.ctx(), popup_id);
-        let button_response = ui.medium_icon_toggle_button(
-            &icon::NOTIFICATION,
+        let button_response = ui.phosphor_icon_toggle_button(
+            BELL,
             "Notification toggle",
             &mut is_panel_visible.clone(),
         );
@@ -348,7 +343,7 @@ impl NotificationUi {
                 ui.strong("Notifications");
             }
             ui.with_layout(egui::Layout::top_down(egui::Align::Max), |ui| {
-                if ui.small_icon_button(&icon::CLOSE, "Close").clicked() {
+                if ui.phosphor_icon_button(X, "Close").clicked() {
                     ui.close();
                 }
             });
@@ -491,7 +486,7 @@ fn show_notification(
         .show(ui, |ui| {
             ui.vertical_centered(|ui| {
                 ui.horizontal_top(|ui| {
-                    ui.add(level.image(ui));
+                    ui.phosphor_icon(level.icon_str(), Some(level.color(ui)));
 
                     ui.vertical(|ui| {
                         ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Wrap);
