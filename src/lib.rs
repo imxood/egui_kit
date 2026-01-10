@@ -35,9 +35,9 @@
 #![warn(clippy::iter_over_hash_type)]
 
 // 核心模块
-pub mod foundation;
 pub mod components;
 pub mod extensions;
+pub mod foundation;
 pub mod interactions;
 pub mod utils;
 
@@ -47,14 +47,16 @@ pub mod testing;
 use egui::NumExt as _;
 
 // ===== Foundation Re-exports =====
-pub use foundation::{design_tokens_of, DesignTokens, ThemeName};
-pub use foundation::theme::{DARK_THEMES, LIGHT_THEMES, ALL_THEMES};
+pub use foundation::theme::{ALL_THEMES, DARK_THEMES, LIGHT_THEMES};
+pub use foundation::{DesignTokens, ThemeName, design_tokens_of};
+
+pub use web_time as time;
 
 // ============================================================================
 // 主题设置
 // ============================================================================
 
-use crate::foundation::theme::{self, style_by_name};
+use crate::foundation::theme::style_by_name;
 
 /// Setup theme with ThemeName
 ///
@@ -91,16 +93,20 @@ impl From<egui::ThemePreference> for ThemeName {
 
 // ===== Components Re-exports =====
 pub use components::{
+    CommandPalette,
+    CommandPaletteAction,
+    CommandPaletteUrl,
     // Basic
     Icon,
 
-    // Others
-    list_item, SectionCollapsingHeader,
-    CommandPalette, CommandPaletteAction, CommandPaletteUrl,
-    UICommand, UICommandSender,
+    SectionCollapsingHeader,
+    UICommand,
+    UICommandSender,
 
     // Dialog
     dialog::Dialog,
+    // Others
+    list_item,
 };
 
 // ===== Extensions Re-exports =====
@@ -268,9 +274,5 @@ fn is_in_resizable_panel(ui: &egui::Ui) -> bool {
         }
     }
 
-    if is_in_side_panel {
-        true
-    } else {
-        false
-    }
+    if is_in_side_panel { true } else { false }
 }

@@ -41,6 +41,9 @@
 
 use std::fmt;
 
+#[cfg(feature = "system-font")]
+use sys_locale::get_locale;
+
 // ============================================================================
 // Chinese Font Embedded Data (WASM + chinese feature)
 // ============================================================================
@@ -153,8 +156,8 @@ impl FontManager {
     ///
     /// Returns error if font scanning or loading fails
     pub fn new(ctx: &egui::Context) -> Result<Self, FontError> {
-        // With system-font feature (full functionality for native targets)
-        #[cfg(feature = "system-font")]
+        // Native + system-font: Use system font detection
+        #[cfg(all(feature = "system-font", not(target_arch = "wasm32")))]
         {
             let language = detect_system_language();
             let mut loader = FontLoader::new()?;
@@ -179,7 +182,7 @@ impl FontManager {
             });
         }
 
-        // WASM + chinese feature: Load embedded Chinese TTF automatically
+        // WASM + chinese: Load embedded Chinese TTF automatically
         #[cfg(all(target_arch = "wasm32", feature = "chinese"))]
         {
             log::info!("WASM + chinese: Loading embedded Chinese font");

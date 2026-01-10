@@ -11,22 +11,26 @@ categories = ["gui", "graphics"]
 rust-version = "1.85"
 
 [features]
-default = ["basic-components", "serde", "markdown", "icons", "font"]
+# 默认启用的 features
+default = ["basic-components", "serde", "font", "full-font", "icons"]
 
 # 组件 features
 basic-components = []
 all-components = ["basic-components"]
 
 # 功能 features
-# 字体系统：包含预定义中文字体 + 系统字体自动检测
-font = ["chinese"]
-# 系统字体自动检测（需要扫描系统字体、检测系统语言）- 仅 Native 目标
+# 字体系统
+# font: 启用 font 模块 (无 system-font 依赖, WASM 可用)
+# system-font: 系统字体自动检测（仅 Native, 需要扫描系统字体、检测系统语言）
+# chinese: 预定义中文字体列表
+# full-font: 组合 feature = system-font + chinese (Native 推荐)
+font = []
 system-font = ["dep:font-kit", "dep:sys-locale"]
-# 预定义中文字体列表（与 system-font 配合使用）
 chinese = []
+full-font = ["system-font", "chinese"]
 
 # 图标 features（独立于字体系统）
-icons = ["egui-phosphor"]
+icons = ["egui-phosphor/regular"]
 markdown = ["egui_commonmark"]
 drag-and-drop = []
 
