@@ -90,12 +90,13 @@ impl ToastMessage {
 }
 
 /// 全局 Toast 状态
-#[derive(Debug)]
 struct GlobalToastState {
     /// egui Context 的弱引用
     ctx: Option<Weak<Context>>,
     /// 待显示的消息队列
     pending_toasts: Vec<ToastMessage>,
+    /// Toasts 实例 (需要在帧之间保持)
+    toasts: Toasts,
 }
 
 impl Default for GlobalToastState {
@@ -103,6 +104,9 @@ impl Default for GlobalToastState {
         Self {
             ctx: None,
             pending_toasts: Vec::new(),
+            toasts: Toasts::new()
+                .anchor(Align2::RIGHT_TOP, (-10.0, 10.0))
+                .direction(Direction::TopDown),
         }
     }
 }
@@ -110,7 +114,7 @@ impl Default for GlobalToastState {
 /// 全局 Toast 管理器
 ///
 /// 使用 OnceLock 实现全局单例，支持在任何位置发送 toast。
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct GlobalToast {
     state: Arc<Mutex<GlobalToastState>>,
 }
@@ -157,44 +161,36 @@ impl GlobalToast {
         }
     }
 
-    /// 获取并清空待显示的消息
-    pub fn consume_toasts() -> Vec<ToastMessage> {
-        let state = Self::get_or_init();
-        let mut state = state.lock().unwrap_or_else(|e| e.into_inner());
-        state.pending_toasts.drain(..).collect()
-    }
-
     /// 渲染所有待显示的 Toast
     pub fn render(ctx: &Context) {
-        let messages = Self::consume_toasts();
+        let state = Self::get_or_init();
+        let mut state = state.lock().unwrap_or_else(|e| e.into_inner());
 
-        if messages.is_empty() {
-            return;
+        // 先取出待显示的消息
+        let messages: Vec<ToastMessage> = state.pending_toasts.drain(..).collect();
+
+        // 在独立作用域中添加消息到 Toasts
+        {
+            let toasts = &mut state.toasts;
+            for message in messages {
+                let toast = EToast {
+                    text: RichText::new(message.message).into(),
+                    kind: match message.level {
+                        ToastLevel::Info => EToastKind::Info,
+                        ToastLevel::Success => EToastKind::Success,
+                        ToastLevel::Warning => EToastKind::Warning,
+                        ToastLevel::Error => EToastKind::Error,
+                    },
+                    options: ToastOptions::default()
+                        .duration_in_seconds(message.duration_secs as f64),
+                    ..Default::default()
+                };
+                toasts.add(toast);
+            }
         }
 
-        // 创建 Toasts 管理器
-        let mut toasts = Toasts::new()
-            .anchor(Align2::RIGHT_TOP, (-10.0, 10.0))
-            .direction(Direction::TopDown);
-
-        // 添加每个 toast
-        for message in messages {
-            let toast = EToast {
-                text: RichText::new(message.message).into(),
-                kind: match message.level {
-                    ToastLevel::Info => EToastKind::Info,
-                    ToastLevel::Success => EToastKind::Success,
-                    ToastLevel::Warning => EToastKind::Warning,
-                    ToastLevel::Error => EToastKind::Error,
-                },
-                options: ToastOptions::default()
-                    .duration_in_seconds(message.duration_secs as f64),
-                ..Default::default()
-            };
-            toasts.add(toast);
-        }
-
-        toasts.show(ctx);
+        // 渲染 Toasts
+        state.toasts.show(ctx);
     }
 
     // ===== 便捷 API =====

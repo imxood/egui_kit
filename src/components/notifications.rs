@@ -11,7 +11,6 @@ use std::time::Duration;
 
 use egui::{NumExt as _, Widget as _};
 use egui_phosphor::regular::{BELL, CHECK_CIRCLE, INFO, WARNING, X, X_CIRCLE};
-use jiff::Timestamp;
 pub use log::Level;
 
 use crate::UiExt;
@@ -112,7 +111,7 @@ pub struct Notification {
     permanent_dismiss_id: Option<egui::Id>,
 
     /// When this notification was added to the list.
-    created_at: Timestamp,
+    created_at: web_time::SystemTime,
 
     /// Time to live for toasts, the notification itself lives until dismissed.
     toast_ttl: Duration,
@@ -129,7 +128,7 @@ impl Notification {
             details: None,
             link: None,
             permanent_dismiss_id: None,
-            created_at: Timestamp::now(),
+            created_at: web_time::SystemTime::now(),
             toast_ttl: base_ttl(),
             is_unread: true,
         }
@@ -538,10 +537,13 @@ fn show_notification(
     (reaction, response)
 }
 
-fn notification_age_label(ui: &mut egui::Ui, created_at: Timestamp) {
+fn notification_age_label(ui: &mut egui::Ui, created_at: web_time::SystemTime) {
     // TODO(emilk): use short_duration_ui
 
-    let age = Timestamp::now().duration_since(created_at).as_secs_f64();
+    let age = web_time::SystemTime::now()
+        .duration_since(created_at)
+        .unwrap_or_default()
+        .as_secs_f64();
 
     let formatted = if age < 10.0 {
         ui.ctx().request_repaint_after(Duration::from_secs(1));
@@ -554,7 +556,7 @@ fn notification_age_label(ui: &mut egui::Ui, created_at: Timestamp) {
     } else {
         ui.ctx().request_repaint_after(Duration::from_secs(60));
 
-        created_at.strftime("%H:%M").to_string()
+        format!("{created_at:?}")
     };
 
     ui.horizontal_top(|ui| {
@@ -564,7 +566,7 @@ fn notification_age_label(ui: &mut egui::Ui, created_at: Timestamp) {
                 egui::Label::new(egui::RichText::new(formatted).weak())
                     .wrap_mode(egui::TextWrapMode::Extend),
             )
-            .on_hover_text(created_at.to_string());
+            .on_hover_text(format!("{created_at:?}"));
         });
     });
 }

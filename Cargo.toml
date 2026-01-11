@@ -45,9 +45,9 @@ testing = ["egui_kittest"]
 
 [dependencies]
 # 核心依赖
-egui = "0.33"
+egui = { version = "0.33", features = ["callstack"] }
 eframe = { version = "0.33", features = ["wgpu"] }
-indexmap = "2.12"
+indexmap = "2"
 
 # 组件依赖
 egui_extras = { version = "0.33", features = ["image", "svg"] }
@@ -55,14 +55,13 @@ egui_tiles = "0.14"
 ahash = "0.8"
 anyhow = "1.0"
 itertools = "0.14.0"
-jiff = "0.2"
 num-traits = "0.2"
 ron = "0.12.0"
 smallvec = "1.13"
 strum_macros = "0.27"
 strum = { version = "0.27", features = ["derive"] }
 sublime_fuzzy = "0.7"
-url = "2.5"
+url = "2"
 getrandom = "0.3"
 
 # 日志

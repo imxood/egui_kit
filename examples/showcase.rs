@@ -11,6 +11,7 @@
 
 use eframe::egui;
 use egui_kit::{setup_theme, ThemeName, ALL_THEMES, DARK_THEMES, LIGHT_THEMES};
+use egui_kit::toast::GlobalToast;
 use egui_kit::foundation::style_by_name;
 
 #[cfg(feature = "font")]
@@ -33,7 +34,11 @@ fn main() -> Result<(), eframe::Error> {
             // Apply default theme
             setup_theme(&cc.egui_ctx, ThemeName::ModernDark);
 
+            // Initialize GlobalToast
+            GlobalToast::init(&cc.egui_ctx);
+
             // Initialize font manager
+            #[cfg(feature = "font")]
             let font_manager = match FontManager::new(&cc.egui_ctx) {
                 Ok(manager) => {
                     println!("✅ Font loaded: {}", manager.current_font());
@@ -49,6 +54,9 @@ fn main() -> Result<(), eframe::Error> {
                 }
             };
 
+            #[cfg(not(feature = "font"))]
+            let font_manager = None;
+
             Ok(Box::new(ComprehensiveShowcaseApp {
                 current_theme: ThemeName::ModernDark,
                 slider_value: 50.0,
@@ -58,14 +66,24 @@ fn main() -> Result<(), eframe::Error> {
                 font_manager,
 
                 // Font testing state - start with English only for clean testing
+                #[cfg(feature = "font")]
                 selected_languages: vec![Language::English],
+                #[cfg(feature = "font")]
                 is_multi_language_mode: false,
+                #[cfg(feature = "font")]
                 switch_count: 0,
+                #[cfg(feature = "font")]
                 last_switch_time: std::time::Instant::now(),
+                #[cfg(feature = "font")]
                 custom_text: "Hello 世界! こんにちは 안녕하세요".to_string(),
 
                 // UI state
                 active_tab: Tab::Theme,
+
+                // Toast demo state
+                toast_input: "Toast message example".to_string(),
+                async_loading: false,
+                async_progress: 0,
             }))
         }),
     )
@@ -77,6 +95,7 @@ enum Tab {
     SingleFont,
     MultiLanguage,
     MemoryTest,
+    Toast,
 }
 
 struct ComprehensiveShowcaseApp {
@@ -104,6 +123,11 @@ struct ComprehensiveShowcaseApp {
 
     // UI state
     active_tab: Tab,
+
+    // Toast demo state
+    toast_input: String,
+    async_loading: bool,
+    async_progress: u32,
 }
 
 impl ComprehensiveShowcaseApp {
@@ -133,6 +157,7 @@ impl ComprehensiveShowcaseApp {
                 (Tab::SingleFont, "🔤 单字体", "Single font testing"),
                 (Tab::MultiLanguage, "🌍 多语言", "Multi-language support"),
                 (Tab::MemoryTest, "🧹 内存测试", "Memory cleanup test"),
+                (Tab::Toast, "🔔 Toast", "Toast notification demo"),
             ];
 
             for (tab, title, tooltip) in tabs {
@@ -778,6 +803,138 @@ impl ComprehensiveShowcaseApp {
         println!("========================\n");
     }
 
+    /// Show Toast notification showcase
+    fn show_toast_showcase(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+        ui.heading("🔔 Toast Notification Demo");
+        ui.separator();
+
+        ui.label("GlobalToast is a global notification system that can be called from anywhere.");
+        ui.add_space(10.0);
+
+        // Basic toast types
+        ui.group(|ui| {
+            ui.heading("Basic Toast Types");
+            ui.separator();
+
+            ui.horizontal(|ui| {
+                if ui.button("✅ Success").clicked() {
+                    GlobalToast::success("Operation completed successfully!");
+                }
+                if ui.button("ℹ️ Info").clicked() {
+                    GlobalToast::info("This is an informational message.");
+                }
+                if ui.button("⚠️ Warning").clicked() {
+                    GlobalToast::warning("Please review your settings.");
+                }
+                if ui.button("❌ Error").clicked() {
+                    GlobalToast::error("An error has occurred!");
+                }
+            });
+        });
+
+        ui.add_space(15.0);
+
+        // Custom message toast
+        ui.group(|ui| {
+            ui.heading("Custom Message Toast");
+            ui.separator();
+
+            ui.horizontal(|ui| {
+                ui.label("Message:");
+                ui.text_edit_singleline(&mut self.toast_input);
+            });
+
+            ui.add_space(10.0);
+
+            ui.horizontal(|ui| {
+                if ui.button("Custom Success").clicked() {
+                    GlobalToast::success(&self.toast_input);
+                }
+                if ui.button("Custom Info").clicked() {
+                    GlobalToast::info(&self.toast_input);
+                }
+                if ui.button("Custom Warning").clicked() {
+                    GlobalToast::warning(&self.toast_input);
+                }
+                if ui.button("Custom Error").clicked() {
+                    GlobalToast::error(&self.toast_input);
+                }
+            });
+        });
+
+        ui.add_space(15.0);
+
+        // Async operation simulation
+        ui.group(|ui| {
+            ui.heading("Async Operation Demo");
+            ui.separator();
+
+            ui.label("Simulating async operations with toast notifications:");
+            ui.add_space(10.0);
+
+            ui.horizontal(|ui| {
+                if ui.button("🚀 Start Async Task").clicked() && !self.async_loading {
+                    self.async_loading = true;
+                    self.async_progress = 0;
+
+                    // Clone values for the async closure
+                    let ctx = ctx.clone();
+                    let toast_input = self.toast_input.clone();
+
+                    std::thread::spawn(move || {
+                        std::thread::sleep(std::time::Duration::from_millis(500));
+                        GlobalToast::info("Task started...");
+
+                        std::thread::sleep(std::time::Duration::from_millis(1000));
+                        GlobalToast::info("Processing...");
+
+                        std::thread::sleep(std::time::Duration::from_millis(1000));
+                        GlobalToast::success(&format!("Task completed: {}!", toast_input));
+                    });
+                }
+
+                if self.async_loading {
+                    ui.spinner();
+                    ui.label("Processing...");
+                }
+            });
+        });
+
+        ui.add_space(15.0);
+
+        // Usage guide
+        ui.group(|ui| {
+            ui.heading("📖 Usage Guide");
+            ui.separator();
+
+            ui.label("1. Initialize in App::new():");
+            ui.code(r#"GlobalToast::init(ctx);"#);
+            ui.add_space(5.0);
+
+            ui.label("2. Call from anywhere (no ctx needed):");
+            ui.code(r#"GlobalToast::success("Operation completed!");"#);
+            ui.add_space(5.0);
+
+            ui.label("3. Render in App::update():");
+            ui.code(r#"GlobalToast::render(ctx);"#);
+            ui.add_space(5.0);
+
+            ui.label("Available methods:");
+            ui.label("• GlobalToast::info(message)");
+            ui.label("• GlobalToast::success(message)");
+            ui.label("• GlobalToast::warning(message)");
+            ui.label("• GlobalToast::error(message)");
+        });
+
+        ui.add_space(10.0);
+
+        // Note about thread safety
+        ui.colored_label(
+            egui::Color32::from_rgb(100, 149, 237),
+            "💡 Note: GlobalToast uses thread-safe Arc<Mutex<...>> and can be called from any thread.",
+        );
+    }
+
     /// Show placeholder for non-font builds
     #[cfg(not(feature = "font"))]
     fn show_single_font_test(&mut self, _ctx: &egui::Context, ui: &mut egui::Ui) {
@@ -853,6 +1010,7 @@ impl eframe::App for ComprehensiveShowcaseApp {
                 Tab::SingleFont => self.show_single_font_test(ctx, ui),
                 Tab::MultiLanguage => self.show_multi_language_support(ctx, ui),
                 Tab::MemoryTest => self.show_memory_test(ctx, ui),
+                Tab::Toast => self.show_toast_showcase(ctx, ui),
             }
 
             #[cfg(not(feature = "font"))]
@@ -861,7 +1019,15 @@ impl eframe::App for ComprehensiveShowcaseApp {
                 Tab::SingleFont => self.show_single_font_test(ctx, ui),
                 Tab::MultiLanguage => self.show_multi_language_support(ctx, ui),
                 Tab::MemoryTest => self.show_memory_test(ctx, ui),
+                Tab::Toast => self.show_toast_showcase(ctx, ui),
             }
         });
+
+        // Render GlobalToast in an overlay layer
+        egui::Area::new(egui::Id::new("toast_overlay"))
+            .anchor(egui::Align2::RIGHT_TOP, egui::vec2(10.0, 10.0))
+            .show(ctx, |ui| {
+                GlobalToast::render(ctx);
+            });
     }
 }
