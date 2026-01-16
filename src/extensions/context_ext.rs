@@ -94,7 +94,7 @@ pub trait ContextExt {
         egui::RichText::new(text).color(style.visuals.error_fg_color)
     }
 
-    fn top_bar_style(&self, _frame: &eframe::Frame, style_like_web: bool) -> TopBarStyle {
+    fn top_bar_style(&self, style_like_web: bool) -> TopBarStyle {
         let tokens = self.tokens();
         let egui_zoom_factor = self.ctx().zoom_factor();
         let fullscreen = self

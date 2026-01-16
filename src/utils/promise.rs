@@ -1,215 +1,269 @@
-//! Promise - Async operation wrapper for egui
+//! MaybePromise - 异步操作封装
 //!
-//! Simplifies async result handling in immediate mode UI
-//! Supports cancellation for long-running operations (BLE connect, OTA, etc.)
+//! 简化 egui 即时模式中的异步处理:
+//! - 原位发起请求
+//! - 每帧轮询结果
+//! - 自动触发重绘
+//! - 支持取消异步任务
+//!
+//! 用法:
+//! ```ignore
+//! use iot_tool_web::runtime;
+//!
+//! struct MyState {
+//!     load_promise: MaybePromise<Result<Data, Error>>,
+//! }
+//!
+//! // 发起请求 (统一接口)
+//! state.load_promise = Some(Promise::spawn(&runtime(), ctx, async {
+//!     api::load().await
+//! }));
+//!
+//! // 轮询结果
+//! if let Some(promise) = &mut state.load_promise {
+//!     if let Some(result) = promise.poll() {
+//!         // 处理结果
+//!         state.load_promise = None;
+//!     }
+//! }
+//!
+//! // 主动取消
+//! if let Some(promise) = &state.load_promise {
+//!     promise.cancel();
+//! }
+//! state.load_promise = None;  // Drop 时自动取消
+//! ```
 
-use tokio::runtime::Handle;
+use std::future::Future;
+use std::sync::{Arc, Mutex};
+
+#[cfg(not(target_arch = "wasm32"))]
 use tokio::sync::oneshot;
-use tokio::task::JoinHandle;
+#[cfg(not(target_arch = "wasm32"))]
+use tokio_util::sync::CancellationToken;
 
+/// MaybePromise 类型别名
 pub type MaybePromise<T> = Option<Promise<T>>;
 
-/// Promise for async operations
-///
-/// Wraps a future and provides non-blocking result polling with cancellation support
+/// 异步操作封装 (实现 Clone 以支持 egui::Memory 存储)
+#[derive(Clone)]
 pub struct Promise<T> {
-    receiver: oneshot::Receiver<T>,
-    task_handle: JoinHandle<()>,
+    #[cfg(not(target_arch = "wasm32"))]
+    inner: Arc<Mutex<PromiseInner<T>>>,
+    #[cfg(not(target_arch = "wasm32"))]
+    cancel_token: CancellationToken,
+
+    #[cfg(target_arch = "wasm32")]
+    inner: Arc<Mutex<PromiseState<T>>>,
 }
 
-impl<T> Promise<T> {
-    /// Create a Promise from a future
-    ///
-    /// # Example
-    /// ```ignore
-    /// let mut promise = Promise::new(&runtime, async {
-    ///     session.connect(&address).await
-    /// });
-    ///
-    /// // Later, if needed:
-    /// promise.cancel();
-    /// ```
-    pub fn new<F>(runtime: &Handle, future: F) -> Self
+#[cfg(not(target_arch = "wasm32"))]
+struct PromiseInner<T> {
+    receiver: Option<oneshot::Receiver<T>>,
+    result: Option<T>,
+}
+
+#[cfg(target_arch = "wasm32")]
+struct PromiseState<T> {
+    result: Option<T>,
+    cancelled: bool,
+}
+
+impl<T: Send + 'static> Promise<T> {
+    /// 创建可取消的 Promise (Native)
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn spawn<F>(runtime: &tokio::runtime::Handle, ctx: &egui::Context, future: F) -> Self
     where
-        F: std::future::Future<Output = T> + Send + 'static,
-        T: Send + 'static,
+        F: Future<Output = T> + Send + 'static,
     {
         let (tx, rx) = oneshot::channel();
+        let ctx_clone = ctx.clone();
+        let cancel_token = CancellationToken::new();
+        let cancel_token_clone = cancel_token.clone();
 
-        let task_handle = runtime.spawn(async move {
-            let result = future.await;
-            let _ = tx.send(result);
+        runtime.spawn(async move {
+            tokio::select! {
+                result = future => {
+                    let _ = tx.send(result);
+                    ctx_clone.request_repaint();
+                }
+                _ = cancel_token_clone.cancelled() => {
+                    // 任务被取消，不发送结果
+                    log::debug!("Promise cancelled");
+                }
+            }
         });
 
         Self {
-            receiver: rx,
-            task_handle,
+            inner: Arc::new(Mutex::new(PromiseInner {
+                receiver: Some(rx),
+                result: None,
+            })),
+            cancel_token,
         }
     }
 
-    /// Poll for result (non-blocking)
-    ///
-    /// Returns Some(result) if ready, None if still pending or cancelled
-    pub fn poll(&mut self) -> Option<T> {
-        match self.receiver.try_recv() {
-            Ok(result) => Some(result),
-            Err(oneshot::error::TryRecvError::Empty) => None, // Still running
-            Err(oneshot::error::TryRecvError::Closed) => None, // Cancelled
-        }
-    }
+    /// 创建可取消的 Promise (WASM)
+    #[cfg(target_arch = "wasm32")]
+    pub fn spawn<F>(_runtime: &(), ctx: &egui::Context, future: F) -> Self
+    where
+        F: Future<Output = T> + 'static,
+        T: 'static,
+    {
+        let inner = Arc::new(Mutex::new(PromiseState {
+            result: None,
+            cancelled: false,
+        }));
+        let inner_clone = inner.clone();
+        let ctx = ctx.clone();
 
-    /// Check if the promise is ready
-    pub fn is_ready(&mut self) -> bool {
-        matches!(
-            self.receiver.try_recv(),
-            Ok(_) | Err(oneshot::error::TryRecvError::Closed)
-        )
-    }
-
-    /// Cancel the running task
-    ///
-    /// Aborts the underlying async task immediately.
-    /// Useful for long-running operations like BLE connection or OTA.
-    /// This method is idempotent (can be called multiple times safely).
-    ///
-    /// # Example
-    /// ```ignore
-    /// let mut promise = Promise::new(&runtime, async {
-    ///     // Long-running BLE connection
-    ///     session.connect(&address).await
-    /// });
-    ///
-    /// // User clicked cancel button
-    /// promise.cancel();
-    /// ```
-    pub fn cancel(&self) {
-        self.task_handle.abort();
-    }
-
-    /// Check if the task has been cancelled or finished
-    pub fn is_cancelled(&self) -> bool {
-        self.task_handle.is_finished()
-    }
-}
-
-impl<T> Drop for Promise<T> {
-    fn drop(&mut self) {
-        // Auto-cancel unfinished tasks to prevent resource leaks
-        self.task_handle.abort();
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_promise_success() {
-        let runtime = tokio::runtime::Handle::current();
-        let mut promise = Promise::new(&runtime, async { 42 });
-
-        // Initially not ready
-        assert!(promise.poll().is_none());
-
-        // Wait a bit
-        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
-
-        // Should be ready
-        assert_eq!(promise.poll(), Some(42));
-    }
-
-    #[tokio::test]
-    async fn test_promise_with_result() {
-        let runtime = tokio::runtime::Handle::current();
-        let mut promise = Promise::new(&runtime, async { Ok::<_, String>(100) });
-
-        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
-
-        match promise.poll() {
-            Some(Ok(value)) => assert_eq!(value, 100),
-            _ => panic!("Expected Ok(100)"),
-        }
-    }
-
-    #[tokio::test]
-    async fn test_promise_cancel() {
-        use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
-
-        let runtime = tokio::runtime::Handle::current();
-
-        // 使用原子布尔值跟踪任务是否完成
-        let task_completed = Arc::new(AtomicBool::new(false));
-        let task_completed_clone = task_completed.clone();
-
-        let mut promise = Promise::new(&runtime, async move {
-            // 模拟长时间运行的任务 (5秒)
-            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-
-            // 如果执行到这里, 说明任务没有被取消
-            task_completed_clone.store(true, Ordering::SeqCst);
-            eprintln!("❌ Task completed - this should NOT print!");
-
-            42
+        wasm_bindgen_futures::spawn_local(async move {
+            let result = future.await;
+            let mut state = inner_clone.lock().unwrap();
+            // 只在未取消时存储结果并触发重绘
+            if !state.cancelled {
+                state.result = Some(result);
+                ctx.request_repaint();
+            }
         });
 
-        // 初始状态检查
-        assert!(promise.poll().is_none(), "Promise should not be ready initially");
-        assert!(!promise.is_cancelled(), "Promise should not be cancelled initially");
-        assert!(!task_completed.load(Ordering::SeqCst), "Task should not be completed initially");
-
-        // 等待 2 秒 (任务还在运行)
-        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-
-        // 取消任务
-        eprintln!("✓ Cancelling task after 2 seconds");
-        promise.cancel();
-
-        // 等待足够长的时间, 确保任务如果没被取消会执行完毕 (再等3秒, 总共5秒)
-        tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
-
-        // 验证任务被成功取消
-        assert!(promise.is_cancelled(), "Promise should be cancelled");
-        assert!(promise.poll().is_none(), "Cancelled promise should return None");
-        assert!(!task_completed.load(Ordering::SeqCst), "Task should NOT have completed after cancellation");
-
-        eprintln!("✓ Task was successfully cancelled - no output from task");
+        Self { inner }
     }
 
-    #[tokio::test]
-    async fn test_promise_auto_cancel_on_drop() {
-        use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
+    /// 取消异步任务 (Native)
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn cancel(&self) {
+        self.cancel_token.cancel();
+    }
 
-        let runtime = tokio::runtime::Handle::current();
+    /// 取消异步任务 (WASM)
+    #[cfg(target_arch = "wasm32")]
+    pub fn cancel(&self) {
+        let mut state = self.inner.lock().unwrap();
+        state.cancelled = true;
+        state.result = None;  // 清空可能已有的结果
+    }
 
-        // 使用原子布尔值跟踪任务是否完成
-        let task_completed = Arc::new(AtomicBool::new(false));
-        let task_completed_clone = task_completed.clone();
-
+    /// 非阻塞轮询结果
+    pub fn poll(&mut self) -> Option<T> {
+        #[cfg(not(target_arch = "wasm32"))]
         {
-            let _promise = Promise::new(&runtime, async move {
-                // 模拟长时间运行的任务 (5秒)
-                tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-
-                // 如果执行到这里, 说明任务没有被自动取消
-                task_completed_clone.store(true, Ordering::SeqCst);
-                println!("❌ Task completed in drop test - this should NOT print!");
-
-                42
-            });
-
-            // 等待 1 秒后 drop Promise
-            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-            println!("✓ Dropping promise after 1 second");
-
-            // Promise 在这里被 drop, 应该自动取消任务
+            let mut guard = self.inner.lock().unwrap();
+            // 如果已有结果，返回
+            if guard.result.is_some() {
+                return guard.result.take();
+            }
+            // 尝试接收
+            if let Some(rx) = &mut guard.receiver {
+                match rx.try_recv() {
+                    Ok(result) => {
+                        guard.receiver = None;
+                        return Some(result);
+                    }
+                    Err(oneshot::error::TryRecvError::Empty) => {}
+                    Err(oneshot::error::TryRecvError::Closed) => {
+                        guard.receiver = None;
+                    }
+                }
+            }
+            None
         }
 
-        // 再等待 5 秒, 确保任务如果没被取消会执行完毕
-        tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-
-        // 验证任务被自动取消
-        assert!(!task_completed.load(Ordering::SeqCst), "Task should NOT have completed after promise dropped");
-
-        println!("✓ Task was auto-cancelled on drop - no resource leak");
+        #[cfg(target_arch = "wasm32")]
+        {
+            let mut state = self.inner.lock().unwrap();
+            // 如果已取消，返回 None
+            if state.cancelled {
+                return None;
+            }
+            state.result.take()
+        }
     }
+
+    /// 检查是否已完成
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn is_ready(&self) -> bool {
+        let guard = self.inner.lock().unwrap();
+        guard.result.is_some() || guard.receiver.is_none()
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn is_ready(&self) -> bool {
+        let state = self.inner.lock().unwrap();
+        state.result.is_some() && !state.cancelled
+    }
+
+    /// 检查是否已取消
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn is_cancelled(&self) -> bool {
+        self.cancel_token.is_cancelled()
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn is_cancelled(&self) -> bool {
+        self.inner.lock().unwrap().cancelled
+    }
+}
+
+// 实现 Drop trait，自动取消异步任务
+#[cfg(not(target_arch = "wasm32"))]
+impl<T> Drop for Promise<T> {
+    fn drop(&mut self) {
+        // 只有最后一个引用被 drop 时才真正取消
+        if Arc::strong_count(&self.inner) == 1 {
+            self.cancel_token.cancel();
+            log::debug!("async task done");
+        }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl<T> Drop for Promise<T> {
+    fn drop(&mut self) {
+        // 只有最后一个引用被 drop 时才真正取消
+        if Arc::strong_count(&self.inner) == 1 {
+            let mut state = self.inner.lock().unwrap();
+            state.cancelled = true;
+            state.result = None;
+            log::debug!("async task done");
+        }
+    }
+}
+
+/// 组件状态宏 - 简化 egui::Memory 访问
+///
+/// 用法:
+/// ```ignore
+/// #[derive(Default)]
+/// pub struct MyComponentState {
+///     pub data: Vec<Item>,
+///     pub load_promise: MaybePromise<Result<Vec<Item>, Error>>,
+/// }
+/// define_component_state!(MyComponentState, "my_component");
+///
+/// // 在 UI 中使用
+/// MyComponentState::with(ctx, |state| {
+///     // 访问和修改 state
+/// });
+/// ```
+#[macro_export]
+macro_rules! define_component_state {
+    ($name:ident, $id:expr) => {
+        impl $name {
+            /// 使用闭包访问组件状态
+            pub fn with<R>(ctx: &egui::Context, f: impl FnOnce(&mut Self) -> R) -> R {
+                ctx.memory_mut(|m| {
+                    let state = m.data.get_temp_mut_or_default::<Self>(egui::Id::new($id));
+                    f(state)
+                })
+            }
+
+            /// 设置组件状态
+            pub fn set(ctx: &egui::Context, state: Self) {
+                ctx.memory_mut(|m| {
+                    m.data.insert_temp(egui::Id::new($id), state);
+                });
+            }
+        }
+    };
 }

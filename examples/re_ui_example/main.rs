@@ -418,7 +418,7 @@ fn parse_url(url: &str) -> Option<CommandPaletteUrl> {
 
 impl ExampleApp {
     fn top_bar(&mut self, frame: &eframe::Frame, egui_ctx: &egui::Context) {
-        let top_bar_style = egui_ctx.top_bar_style(frame, false);
+        let top_bar_style = egui_ctx.top_bar_style(false);
 
         egui::TopBottomPanel::top("top_bar")
             .frame(egui_ctx.tokens().top_panel_frame())

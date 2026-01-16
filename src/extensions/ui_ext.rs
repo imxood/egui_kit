@@ -299,10 +299,15 @@ pub trait UiExt {
 
     /// Add a small Phosphor icon button.
     #[cfg(feature = "icons")]
-    fn phosphor_icon_button(&mut self, icon: &str, _alt_text: impl Into<String>) -> egui::Response {
+    fn phosphor_icon_button(&mut self, icon: &str, alt_text: impl Into<String>) -> egui::Response {
         let ui = self.ui_mut();
         let size = ui.tokens().small_icon_size;
-        let mut response = ui.add_sized(size, egui::Button::new(egui::RichText::new(icon).size(size.y)));
+        let mut response = ui
+            .add_sized(
+                size,
+                egui::Button::new(egui::RichText::new(icon).size(size.y)),
+            )
+            .on_hover_text(alt_text.into());
         if response.clicked() {
             response.mark_changed();
         }
@@ -311,7 +316,7 @@ pub trait UiExt {
 
     /// Create a Phosphor icon button widget (for advanced customization).
     #[cfg(feature = "icons")]
-    fn phosphor_icon_button_widget(&self, icon: &str, _alt_text: impl Into<String>) -> egui::Button<'_> {
+    fn phosphor_icon_button_widget(&self, icon: &str) -> egui::Button<'_> {
         egui::Button::new(egui::RichText::new(icon).size(self.tokens().small_icon_size.y))
     }
 
@@ -320,7 +325,7 @@ pub trait UiExt {
     fn phosphor_icon_toggle_button(
         &mut self,
         icon: &str,
-        _alt_text: impl Into<String>,
+        alt_text: impl Into<String>,
         selected: &mut bool,
     ) -> egui::Response {
         let ui = self.ui_mut();
@@ -331,7 +336,9 @@ pub trait UiExt {
             ui.visuals().widgets.noninteractive.fg_stroke.color
         };
         let text = egui::RichText::new(icon).size(size.x).color(tint);
-        let mut response = ui.add(egui::Button::new(text).min_size(size));
+        let mut response = ui
+            .add(egui::Button::new(text).min_size(size))
+            .on_hover_text(alt_text.into());
         if response.clicked() {
             *selected = !*selected;
             response.mark_changed();
