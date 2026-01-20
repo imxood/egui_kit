@@ -267,3 +267,154 @@ macro_rules! define_component_state {
         }
     };
 }
+
+// ==================== TimedPromise 超时封装 ====================
+
+use std::time::{Duration, Instant};
+
+/// 默认超时时间: 30 秒
+pub const DEFAULT_TIMEOUT_SECS: u64 = 30;
+
+/// TimedPromise 类型别名
+pub type MaybeTimedPromise<T> = Option<TimedPromise<T>>;
+
+/// Promise 超时状态
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TimeoutStatus {
+    /// 正在进行中
+    InProgress,
+    /// 已完成
+    Completed,
+    /// 已超时
+    TimedOut,
+}
+
+/// 带超时的 Promise 包装器
+///
+/// 为异步请求提供超时检测功能, 避免无限等待
+///
+/// 用法:
+/// ```ignore
+/// // 创建带超时的 Promise
+/// let promise = Promise::spawn(&runtime, ctx, async { ... });
+/// let timed = TimedPromise::new(promise);
+///
+/// // 轮询 (自动检测超时)
+/// match timed.poll() {
+///     Some(Ok(result)) => { /* 成功 */ }
+///     Some(Err(e)) => { /* 错误或超时 */ }
+///     None => { /* 仍在进行中 */ }
+/// }
+///
+/// // 检查是否超时
+/// if timed.is_timed_out() {
+///     // 显示超时提示
+/// }
+/// ```
+#[derive(Clone)]
+pub struct TimedPromise<T> {
+    /// 内部 Promise
+    promise: Promise<T>,
+    /// 开始时间
+    started_at: Instant,
+    /// 超时时长
+    timeout: Duration,
+    /// 是否已标记超时
+    timed_out: Arc<Mutex<bool>>,
+}
+
+impl<T: Send + 'static> TimedPromise<T> {
+    /// 创建新的 TimedPromise (使用默认超时 30 秒)
+    pub fn new(promise: Promise<T>) -> Self {
+        Self {
+            promise,
+            started_at: Instant::now(),
+            timeout: Duration::from_secs(DEFAULT_TIMEOUT_SECS),
+            timed_out: Arc::new(Mutex::new(false)),
+        }
+    }
+
+    /// 创建新的 TimedPromise (指定超时秒数)
+    pub fn with_timeout(promise: Promise<T>, timeout_secs: u64) -> Self {
+        Self {
+            promise,
+            started_at: Instant::now(),
+            timeout: Duration::from_secs(timeout_secs),
+            timed_out: Arc::new(Mutex::new(false)),
+        }
+    }
+
+    /// 轮询 Promise 结果 (自动检测超时)
+    ///
+    /// 返回:
+    /// - `Some(Ok(result))`: Promise 已完成
+    /// - `Some(Err(error))`: Promise 出错或超时
+    /// - `None`: 仍在进行中
+    pub fn poll(&mut self) -> Option<Result<T, String>>
+    where
+        T: Clone,
+    {
+        // 如果已经标记超时, 返回超时错误
+        {
+            let timed_out = self.timed_out.lock().unwrap();
+            if *timed_out {
+                return Some(Err("请求超时".to_string()));
+            }
+        }
+
+        // 检查是否超时
+        if self.started_at.elapsed() > self.timeout {
+            let mut timed_out = self.timed_out.lock().unwrap();
+            *timed_out = true;
+            return Some(Err(format!(
+                "请求超时 (超过 {} 秒)",
+                self.timeout.as_secs()
+            )));
+        }
+
+        // 正常轮询内部 Promise
+        self.promise.poll().map(Ok)
+    }
+
+    /// 获取当前状态
+    pub fn status(&self) -> TimeoutStatus {
+        let timed_out = self.timed_out.lock().unwrap();
+        if *timed_out {
+            return TimeoutStatus::TimedOut;
+        }
+        if self.started_at.elapsed() > self.timeout {
+            return TimeoutStatus::TimedOut;
+        }
+        if self.promise.is_ready() {
+            return TimeoutStatus::Completed;
+        }
+        TimeoutStatus::InProgress
+    }
+
+    /// 获取已等待时间 (秒)
+    pub fn elapsed_secs(&self) -> u64 {
+        self.started_at.elapsed().as_secs()
+    }
+
+    /// 获取超时时间 (秒)
+    pub fn timeout_secs(&self) -> u64 {
+        self.timeout.as_secs()
+    }
+
+    /// 是否已超时
+    pub fn is_timed_out(&self) -> bool {
+        let timed_out = self.timed_out.lock().unwrap();
+        *timed_out || self.started_at.elapsed() > self.timeout
+    }
+
+    /// 取消内部 Promise
+    pub fn cancel(&self) {
+        self.promise.cancel();
+    }
+
+    /// 获取内部 Promise 的引用
+    pub fn inner(&self) -> &Promise<T> {
+        &self.promise
+    }
+}
+

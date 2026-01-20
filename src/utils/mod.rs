@@ -1,5 +1,7 @@
 //! 工具模块
 
+pub mod datetime;
+
 #[cfg(feature = "font")]
 pub mod font;
 
@@ -10,6 +12,8 @@ pub mod promise;
 
 #[cfg(feature = "markdown")]
 pub mod markdown;
+
+pub use datetime::*;
 
 #[cfg(feature = "font")]
 pub use font::*;

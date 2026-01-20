@@ -47,6 +47,7 @@ pub struct ListItem {
     pub active: bool,
     pub draggable: bool,
     pub drag_target: bool,
+    pub click_to_toggle: bool,
     pub force_hovered: bool,
     force_background: Option<egui::Color32>,
     pub collapse_openness: Option<f32>,
@@ -63,6 +64,7 @@ impl Default for ListItem {
             active: false,
             draggable: false,
             drag_target: false,
+            click_to_toggle: false,
             force_hovered: false,
             force_background: None,
             collapse_openness: None,
@@ -237,6 +239,13 @@ impl ListItem {
         self
     }
 
+    /// 点击节点时是否触发展开/收起.
+    #[inline]
+    pub fn click_to_toggle(mut self, click_to_toggle: bool) -> Self {
+        self.click_to_toggle = click_to_toggle;
+        self
+    }
+
     /// Override the hovered state even if the item is not actually hovered.
     ///
     /// Used to highlight items representing things that are hovered elsewhere in the UI. Note that
@@ -395,14 +404,23 @@ impl ListItem {
         let openness = state.openness(ui.ctx());
         self.collapse_openness = Some(openness);
 
+        let click_to_toggle = self.click_to_toggle;
+
         // Note: the purpose of the scope is to minimise interferences on subsequent items' id
         let response = ui
             .scope(|ui| self.ui(ui, Some(id), 0.0, Box::new(content)))
             .inner;
 
-        if let Some(collapse_response) = response.collapse_response
-            && collapse_response.clicked()
-        {
+        let collapse_clicked = response
+            .collapse_response
+            .as_ref()
+            .map(|r| r.clicked())
+            .unwrap_or(false);
+
+        if collapse_clicked {
+            state.toggle(ui);
+        }
+        if click_to_toggle && response.response.clicked() && !collapse_clicked && !response.response.double_clicked() {
             state.toggle(ui);
         }
         if response.response.double_clicked() {
@@ -449,6 +467,7 @@ impl ListItem {
             active,
             draggable,
             drag_target,
+            click_to_toggle: _click_to_toggle,
             force_hovered,
             force_background,
             collapse_openness,

@@ -42,6 +42,10 @@ pub mod interactions;
 pub mod toast;
 pub mod utils;
 
+// 图标模块 (需要 icons feature)
+#[cfg(feature = "icons")]
+pub mod icons;
+
 #[cfg(feature = "testing")]
 pub mod testing;
 
@@ -106,6 +110,15 @@ pub use components::{
 
     // Dialog
     dialog::Dialog,
+
+    // Tree
+    TreeView,
+    TreeBuilder,
+    TreeState,
+    TreeAction,
+    TreeConfig,
+    NodeOptions,
+
     // Others
     list_item,
 };

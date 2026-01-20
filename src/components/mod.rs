@@ -14,6 +14,7 @@ pub mod menu;
 pub mod modal;
 pub mod notifications;
 pub mod section_header;
+pub mod tree;
 
 // Re-exports
 pub use basic::*;
@@ -29,3 +30,4 @@ pub use menu::*;
 pub use modal::*;
 pub use notifications::*;
 pub use section_header::*;
+pub use tree::*;
